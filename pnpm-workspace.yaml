@@ -1,10 +1,18 @@
 packages:
   - "."
 
+# 仅允许确实需要构建脚本的包运行 postinstall。
+# esbuild 故意排除：本项目存在 esbuild 双版本（vite 用 0.25 / lightningcss+tsx 用 0.28），
+# 其 postinstall 的版本自检在 Linux 上会硬失败并使 pnpm 中止整个安装（node_modules 被回滚）。
+# 正确做法是不运行 esbuild 的 postinstall，而由 package.json 中显式的
+# @esbuild/<platform>@0.28.2 optionalDependencies 提供对应二进制文件。
 allowBuilds:
-  esbuild: true
   protobufjs: true
   "@google/genai": true
+  esbuild: set this to true or false
+
+neverBuiltDependencies:
+  - esbuild
 
 # pnpm 10+ 默认会在运行脚本前做一次依赖状态校验（pnpm install）。
 # 本项目存在 esbuild 多版本共存，其 postinstall 的版本自检会误报非零退出码，
