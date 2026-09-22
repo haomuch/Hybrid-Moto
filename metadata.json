@@ -1,0 +1,7 @@
+{
+  "name": "摩托车功率分流混动架构与3D工程透视系统",
+  "description": "基于单行星排输入分流与左右对置同轴双电机的摩托车功率分流混动总成3D机械透视解剖、中心距校核与陀螺效应操控动力学分析系统。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
