@@ -4,6 +4,13 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Play, Pause, Download, RotateCcw, Eye, Layers, Sliders, Gauge, RotateCw, Cog } from 'lucide-react';
 import { SYSTEM_CENTER_DISTANCE } from '../data/engineeringData';
 
+/**
+ * 行星排轴向 (X) 定位基准 —— 全局唯一真值源 (Single Source of Truth)。
+ * 齿圈外齿输出轮 (Axis 1) 与副轴受动小齿轮 (Axis 2) 必须共用该 X 基准，
+ * 装配建模与爆炸分解视图均引用此常量，杜绝轴向错位。
+ */
+const PLANETARY_X_MM = -46.0;
+
 interface ThreeCutawayViewerProps {
   currentModeSpeedMultiplier?: number;
   highlightedComponent?: string | null;
@@ -384,12 +391,12 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
     // ICE crank pinion reasonably enlarged to 48T (m=2.0, r=48.0mm, pitch dia 96mm).
     // Sum of pitch radii: r_ice(48.0) + r_c_in(72.0) = 120.0 mm!
     // Engine crankshaft positioned at ICE_CRANK_Z = -120.0 mm.
-    // 74T Ring Gear has outer pitch radius 64.75mm (tip radius ~66.5mm) centered at Z = 0.
+    // 60T Ring Gear (outer teeth) has outer pitch radius 52.5mm (tip radius ~54.0mm) centered at Z = 0.
     // 350cc Twin-Cylinder ICE Front Unit:
     // Engine Crankshaft Axis (Axis 0): Y = 0.0mm, Z = -120.0mm.
     // Center distance to Main Shaft (Axis 1, Z = 0) is a_ice = 120.0mm.
-    // Radial separation: distance from crank axis (-120mm) to ring gear tip (-66.5mm) is 53.5mm.
-    // Max crankweb sweep radius <= 46mm, leaving 7.5mm clear radial air gap: ZERO COLLISION in 3D!
+    // Radial separation: distance from crank axis (-120mm) to ring gear tip (-54.0mm) is 66.0mm.
+    // Max crankweb sweep radius <= 46mm, leaving 20.0mm clear radial air gap: ZERO COLLISION in 3D!
     // Carrier input gear (72T, tip radius 74.0mm) to Axis 2 (Z = 105.0mm) clearance: 105 - 74 = 31.0mm!
     // Spatial conflict with intermediate shaft is 100% eliminated!
     // Dual cylinders maintain authentic compact motorcycle parallel-twin bore pitch of 84.0mm (X = -42mm and +42mm)!
@@ -401,7 +408,9 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
     // Rear tire R = 312.0 mm reaches frontmost at Z = 655.0 - 312.0 = 343.0 mm.
     // Leaves 238.0 mm realistic clearance for engine rear casing, swingarm pivot, monoshock, and tire hugger!
     const REAR_Z = 655.0;
-    const PLANETARY_X = -44.0; // Left-offset planetary gearset with complete spatial clearance from ICE crankweb
+    // 行星排轴向定位基准 (X = -46.0mm)：齿圈外齿输出轮与副轴受动小齿轮必须共用同一 X 基准，
+    // 否则两者在轴向上会出现错位（副轴小齿轮视觉偏右）而无法全齿宽啮合！
+    const PLANETARY_X = PLANETARY_X_MM; // Left-offset planetary gearset with complete spatial clearance from ICE crankweb
 
     // Materials
     const steelMat = new THREE.MeshStandardMaterial({ color: 0xcfd8dc, metalness: 0.9, roughness: 0.25 });
@@ -776,9 +785,11 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
     scene.add(centralShaft);
 
     // 2.3 Planetary Gear Set (Shifted left to PLANETARY_X = -46.0 mm)
-    // 2.3.1 Sun Gear (z_s = 24, m=1.5, d=36.0mm, radius=18.0mm)
+    // 2.3.1 Sun Gear (z_s = 18, m=1.5, d=27.0mm, radius=13.5mm)
     // Radiant Amber/Gold metallic finish - high visual contrast, clearly visible in the center!
-    const sunGearGroup = createGearMesh(18.0, 16, 24, 0xf59e0b, 7.5);
+    // 相位说明: 18T 为偶数齿，齿中心正对 3 个行星轮方向 (ψ = 60°/180°/300°)，故太阳轮相位保持 0，
+    // 由行星轮偏移半个齿距 (π / 18) 实现「齿对齿槽」共轭啮合。
+    const sunGearGroup = createGearMesh(13.5, 16, 18, 0xf59e0b, 7.5);
     sunGearGroup.position.set(PLANETARY_X, 0, AXIS1_Z);
 
     // Sun gear central hub collar connected to central shaft
@@ -798,9 +809,9 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
     // We set 2D coordinates: X_2d = -pz = -cos(pa)*R, Y_2d = py = sin(pa)*R!
     const createSpiderFlange = () => {
       const cShape = new THREE.Shape();
-      const outerR = 34.0;
-      const innerR = 12.0; // Hollow center exposes sun gear!
-      const pinR = 31.5;
+      const outerR = 32.0; // 完整包覆行星销孔 (27.0 + 4.4 = 31.4mm)，并与内齿圈齿顶 (38.75mm) 留 6.75mm 间隙
+      const innerR = 16.0; // Hollow center exposes sun gear! (太阳轮齿顶半径仅 14.78mm，中心孔 16.0mm 完全避让)
+      const pinR = 27.0; // = (d_sun + d_planet) / 2 / 2 = (27.0 + 27.0) / 2 = 27.0 mm 销轴分布圆半径
 
       for (let i = 0; i < 3; i++) {
         const pa = (i / 3) * Math.PI * 2;
@@ -877,9 +888,9 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
     carrierGroup.add(spiderR);
 
     // 2.3.3 3 Planet Gears (z_p = 18, m=1.5, d=27.0mm, radius=13.5mm, Steel) & Precision Needle Bearings
-    // Mounted on pin circle radius 31.5 mm, surrounding the central Golden Sun Gear (24T)
+    // Mounted on pin circle radius 27.0 mm, surrounding the central Golden Sun Gear (18T)
     const planetGroups: THREE.Group[] = [];
-    const pinRadius = 31.5;
+    const pinRadius = 27.0; // 分布圆直径 54.0mm = (d_sun 27.0 + d_planet 27.0)
 
     const bearingBronzeMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.9, roughness: 0.2 });
 
@@ -908,23 +919,31 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
       // Planet Gear (hardened steel, 18 teeth, radius 13.5mm) mounted concentrically on pin
       const pg = createGearMesh(13.5, 15, 18, 0xcfd8dc, 3.5);
       pg.position.set(0, py, pz);
+      // 半个齿距相位偏置 (π / 18 = 10°)：使行星轮朝向太阳轮一侧为「齿槽」，
+      // 与太阳轮正对的轮齿精确共轭啮合（3 个行星轮共用同一偏置，
+      // 由装配整数条件 (18 + 54) / 3 = 24 保证 120° 均布时相位完全一致）。
+      pg.rotation.x = Math.PI / 18;
       carrierGroup.add(pg);
       planetGroups.push(pg);
     }
     scene.add(carrierGroup);
 
-    // 2.4 Complete Ring Gear (Green) with both External 66T teeth and Internal 60T planetary teeth at PLANETARY_X = -46.0 mm
+    // 2.4 Complete Ring Gear (Green) with both External 60T teeth and Internal 54T planetary teeth at PLANETARY_X = -46.0 mm
     // Full 360-degree closed circular gear assembly with 22mm width
     const ringGroup = new THREE.Group();
     ringGroup.position.set(PLANETARY_X, 0, AXIS1_Z);
 
-    // 1) Complete Outer teeth (66T, m=1.75, radius 57.75mm, width 22.0mm) for meshing with countershaft 54T
-    const ringOuterTeeth = createGearMesh(57.75, 22, 66, 0x16a34a, 48.0, true, 0);
+    // 1) Complete Outer teeth (60T, m=1.75, radius 52.5mm, width 22.0mm) for meshing with countershaft 60T
+    // 52.5 + 52.5 = 105.0 mm = 副轴中心距，绝对严格啮合！
+    const ringOuterTeeth = createGearMesh(52.5, 22, 60, 0x16a34a, 48.0, true, 0);
     ringGroup.add(ringOuterTeeth);
 
-    // 2) Internal teeth (60T, m=1.5, pitch radius 45.0mm, width 22.0mm) for meshing with 3 planet gears
+    // 2) Internal teeth (54T, m=1.5, pitch radius 40.5mm, width 22.0mm) for meshing with 3 planet gears
     // Seamlessly welded into a single rigid ring gear drum
-    const ringInternalTeeth = createInternalRingGearMesh(45.0, 52.0, 22, 60, 0x15803d, 1.5);
+    const ringInternalTeeth = createInternalRingGearMesh(40.5, 50.5, 22, 54, 0x15803d, 1.5);
+    // 内齿相位偏置 0.6 个齿距 (0.6 × 360° / 54 = 4.0°)：内齿廓的齿顶中心位于 (i + 0.4) 个齿距处，
+    // 偏移后齿顶中心恰好落在 3 个行星轮方向 (ψ = 60°/180°/300°)，与行星轮的齿槽精确共轭内啮合。
+    ringInternalTeeth.rotation.x = 0.6 * ((Math.PI * 2) / 54);
     ringGroup.add(ringInternalTeeth);
 
     scene.add(ringGroup);
@@ -972,11 +991,14 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
     cShaft.position.set(-8, 0, 0);
     countershaftGroup.add(cShaft);
 
-    // Gear 1: Driven Pinion from Ring Gear (z_c1 = 54, m=1.75, radius 47.25mm, width 22.0mm)
-    // Shifted to PLANETARY_X (-46.0 mm) to mesh with shifted Ring Gear 66T!
-    // 57.75 + 47.25 = 105.0 mm !!
-    const cGear1 = createGearMesh(47.25, 22, 54, 0x64748b, 11);
+    // Gear 1: Driven Pinion from Ring Gear (z_c1 = 60, m=1.75, radius 52.5mm, width 22.0mm)
+    // 轴向基准与齿圈外齿输出轮严格共用同一个 PLANETARY_X (-46.0 mm)，两者全齿宽完全对齐、零轴向错位！
+    // 52.5 + 52.5 = 105.0 mm !!
+    const cGear1 = createGearMesh(52.5, 22, 60, 0x64748b, 11);
     cGear1.position.set(PLANETARY_X, 0, 0);
+    // 半个齿距相位偏置 (π / 60 = 3°)：齿圈外齿 60T 为偶数齿，其轮齿正对啮合点，
+    // 副轴小齿轮偏置半个齿距后以「齿槽」承接齿圈的轮齿，实现精确共轭啮合（彻底消除齿顶对齿顶干涉）。
+    cGear1.rotation.x = Math.PI / 60;
     countershaftGroup.add(cGear1);
 
     // Gear 2: Driven Reduction Gear from MG2 (z_c2 = 70, m=2.0, radius 70.0mm) (进一步减小)
@@ -1406,8 +1428,8 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
         }
 
         // 3. 齿圈 (Axis 1, Z = 0):
-        // 齿圈 66T 外齿与副轴 54T 齿轮为外齿柱齿轮啮合，旋转方向相反 -> 正方向 (Positive)
-        const omegaRing = omegaCounter * (54 / 66);
+        // 齿圈 60T 外齿与副轴 60T 齿轮为外齿柱齿轮啮合，旋转方向相反 -> 正方向 (Positive)
+        const omegaRing = omegaCounter * (60 / 60); // i_r_c = 60 / 60 = 1.000
         if (rotatingPartsRef.current.ringGroup) {
           rotatingPartsRef.current.ringGroup.rotation.x += omegaRing;
         }
@@ -1472,9 +1494,9 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
 
         // 7. 太阳轮与 MG1 电机 (Axis 1, Z = 0):
         // 行星排运动学基本方程 (Planetary Gear Set Kinematic Equation):
-        // rho = z_ring / z_sun = 60 / 24 = 2.500 (1 + rho = 3.500)
+        // rho = z_ring / z_sun = 54 / 18 = 3.000 (1 + rho = 4.000)
         // omega_sun = (1 + rho) * omega_carrier - rho * omega_ring
-        const omegaSun = 3.500 * omegaCarrier - 2.500 * omegaRing;
+        const omegaSun = 4.000 * omegaCarrier - 3.000 * omegaRing;
         if (rotatingPartsRef.current.sunGroup) {
           rotatingPartsRef.current.sunGroup.rotation.x += omegaSun;
         }
@@ -1484,7 +1506,7 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
 
         // 8. 行星轮自转 (围绕行星架销轴):
         for (const pg of rotatingPartsRef.current.planetGroups) {
-          pg.rotation.x -= (omegaSun - omegaCarrier) * (24 / 18);
+          pg.rotation.x -= (omegaSun - omegaCarrier) * (18 / 18); // z_s / z_p = 18 / 18 = 1.000
         }
       }
 
@@ -1534,11 +1556,11 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
     // 3. Planetary Gear Set & Input Gear integrity:
     // 爆炸分解时，整个行星齿轮组的所有零件（包括太阳轮、行星架、行星轮、齿圈、空心扭矩管与行星架输入齿轮）
     // 保持在原位，不产生任何左右 (X 轴) 移动！
-    if (parts.carrier) parts.carrier.position.x = -46.0;
+    if (parts.carrier) parts.carrier.position.x = PLANETARY_X_MM;
     if (parts.carrierInput) parts.carrierInput.position.x = 0;
-    if (parts.torqueTube) parts.torqueTube.position.x = -23.0;
-    if (parts.sun) parts.sun.position.x = -46.0;
-    if (parts.ring) parts.ring.position.x = -46.0;
+    if (parts.torqueTube) parts.torqueTube.position.x = PLANETARY_X_MM / 2;
+    if (parts.sun) parts.sun.position.x = PLANETARY_X_MM;
+    if (parts.ring) parts.ring.position.x = PLANETARY_X_MM;
 
     // 4. Countershaft, Drive Chain & Rear Wheel move backward together (+Z):
     // 中间轴 (Axis 2)、驱动链条与后轮整体向后移动相同距离 (+Z)，确保轴距、链轮中心距绝对恒定，链条绝不断开！
@@ -1775,9 +1797,9 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
             {(() => {
               const liveWheelRpm = (manualVehicleSpeedKmh / 3.6 / 0.312) * 60 / (2 * Math.PI);
               const liveCounterRpm = liveWheelRpm * (48 / 12);
-              const liveRingRpm = liveCounterRpm * (54 / 66);
+              const liveRingRpm = liveCounterRpm * (60 / 60);
               const liveCarrierRpm = manualIceRpm / 1.50;
-              const liveSunRpm = (1 + 60 / 24) * liveCarrierRpm - (60 / 24) * liveRingRpm;
+              const liveSunRpm = (1 + 54 / 18) * liveCarrierRpm - (54 / 18) * liveRingRpm;
               const liveMg2Rpm = liveCounterRpm * 2.0;
 
               return (
@@ -1795,7 +1817,7 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
                     </div>
                   </div>
                   <div className="bg-slate-950/60 p-1.5 rounded border border-slate-800">
-                    <div className="text-slate-400 text-[9px]">齿圈 / 54T</div>
+                    <div className="text-slate-400 text-[9px]">齿圈 / 60T</div>
                     <div className="font-mono text-emerald-400 font-semibold mt-0.5">
                       {liveRingRpm.toFixed(0)} <span className="text-[8px] font-normal text-slate-500">rpm</span>
                     </div>

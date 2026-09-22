@@ -117,7 +117,7 @@ export default function App() {
                   a₁ = a₂ = {SYSTEM_CENTER_DISTANCE}.0 mm
                 </span>
                 <span className="text-[10px] text-slate-400 block mt-1">
-                  齿圈74T啮合46T (m=1.75) 与 MG2 35T啮合70T (m=2.0) 轴间距完全闭合且紧密啮合
+                  齿圈外齿 60T 啮合副轴 60T (m=1.75) 与 MG2 35T 啮合 70T (m=2.0) 轴间距完全闭合且紧密啮合
                 </span>
               </div>
 
