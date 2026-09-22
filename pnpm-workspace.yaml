@@ -1,0 +1,12 @@
+packages:
+  - "."
+
+allowBuilds:
+  esbuild: true
+  protobufjs: true
+  "@google/genai": true
+
+# pnpm 10+ 默认会在运行脚本前做一次依赖状态校验（pnpm install）。
+# 本项目存在 esbuild 多版本共存，其 postinstall 的版本自检会误报非零退出码，
+# 导致校验失败。关闭前置校验，让 `pnpm build` 直接执行 vite build。
+verifyDepsBeforeRun: false
