@@ -1367,26 +1367,26 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
         let omegaCounter: number;
         let omegaCarrier: number;
 
-        if (kinRef.current.controlMode === 'manual') {
-          // --- 物理速度与发动机转速联动运动学 (MANUAL CONTROL KINEMATICS) ---
-          // 摩托车轮径 ~630mm, 周长 ~1.98m.
-          // 60 km/h = 16.67 m/s -> 车轮转速 = 16.67 / 1.98 = 8.42 rev/s
-          // 终传比 i_chain = 48 / 12 = 4.000 -> 副轴转速 = 8.42 * 4.000 = 33.68 rev/s
-          // 设定 60 km/h 对应副轴基准角速度 ~ 1.8 rad/s (平顺清晰视觉转速)
-          const normSpeedFactor = (kinRef.current.vehicleSpeedKmh / 60) * 1.8;
-          omegaCounter = delta * normSpeedFactor * playbackSpeed;
+        // --- 统一运动学：omega 必须与「齿轮运动学工作台」面板显示的真实 RPM 成比例 ---
+        // 旧实现副轴用 (车速/60)*1.8、曲轴用 (转速/3000)*4.2 两套互不成比例的视觉系数，
+        // 导致行星排各轴转速比/方向与面板严重不符（如太阳轮已显示 -3000rpm 却仍在正转）。
+        // 现统一按面板公式算出各轴 RPM，再乘同一视觉系数 VIS 得到角速度增量，
+        // 使 3D 透视里各齿轮的转速比例与旋转方向（含符号）与面板完全一致。
+        const varK = kinRef.current.controlMode === 'manual'
+          ? kinRef.current.vehicleSpeedKmh
+          : 100; // 预设模式：标称经济巡航车速
+        const varI = kinRef.current.controlMode === 'manual'
+          ? kinRef.current.iceRpm
+          : 3400; // 预设模式：标称发动机转速
 
-          // 发动机转速 3000 RPM 对应基准角速度 ~ 4.2 rad/s
-          // 曲轴与行星架从动齿轮传动比: i_ice = 72 / 48 = 1.50 -> omega_carrier = omega_ice / 1.50
-          const normIceFactor = (kinRef.current.iceRpm / 3000) * 4.2;
-          const omegaIce = delta * normIceFactor * playbackSpeed;
-          omegaCarrier = omegaIce / (72 / 48);
-        } else {
-          // --- 预设模式速度与恒定速比运动学 ---
-          const speedBase = delta * 2.2 * playbackSpeed * currentModeSpeedMultiplier;
-          omegaCounter = speedBase;
-          omegaCarrier = omegaCounter * 0.80;
-        }
+        const VIS = 0.0014; // rad/s per rpm（3000rpm 曲轴 ≈ 4.2 rad/s，与改动前视觉速度一致）
+        const wheelRadiusM = 0.312; // 160/60 ZR17, R = 0.312 m
+        const countershaftRpmV = ((varK / 3.6 / wheelRadiusM) * 60 / (2 * Math.PI)) * (48 / 12);
+        const carrierRpmV = varI / (72 / 48);
+        const kV = delta * playbackSpeed * VIS;
+        omegaCounter = countershaftRpmV * kV;
+        omegaCarrier = carrierRpmV * kV;
+        const omegaIce = varI * kV;
 
         // --- 正向前进行驶运动学 (FORWARD PROPULSION KINEMATICS) ---
         // 摩托车前进方向为 -Z，轮胎着地点向后(+Z)推地，车轮顶部向前(-Z)滚动：
@@ -1437,7 +1437,7 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
         // 6. 发动机曲轴与中置 48T 输出齿轮 (Axis 0, Z = -120.0):
         // 与行星架从动 72T 齿轮外齿直啮硬连接，转向相反 -> 负方向 (Negative, 速比 72/48 = 1.50)
         if (crankshaftAssembly) {
-          crankshaftAssembly.rotation.x -= omegaCarrier * (72 / 48);
+          crankshaftAssembly.rotation.x -= omegaIce;
         }
 
         // 双缸曲柄连杆机构真实空间运动学联动 (Dynamic Slider-Crank Kinematics)
