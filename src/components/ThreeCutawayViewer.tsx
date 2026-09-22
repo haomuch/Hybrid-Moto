@@ -776,9 +776,9 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
     scene.add(centralShaft);
 
     // 2.3 Planetary Gear Set (Shifted left to PLANETARY_X = -46.0 mm)
-    // 2.3.1 Sun Gear (z_s = 27, m=1.5, d=40.5mm, radius=20.25mm)
+    // 2.3.1 Sun Gear (z_s = 24, m=1.5, d=36.0mm, radius=18.0mm)
     // Radiant Amber/Gold metallic finish - high visual contrast, clearly visible in the center!
-    const sunGearGroup = createGearMesh(20.25, 16, 27, 0xf59e0b, 7.5);
+    const sunGearGroup = createGearMesh(18.0, 16, 24, 0xf59e0b, 7.5);
     sunGearGroup.position.set(PLANETARY_X, 0, AXIS1_Z);
 
     // Sun gear central hub collar connected to central shaft
@@ -798,9 +798,9 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
     // We set 2D coordinates: X_2d = -pz = -cos(pa)*R, Y_2d = py = sin(pa)*R!
     const createSpiderFlange = () => {
       const cShape = new THREE.Shape();
-      const outerR = 39.0;
-      const innerR = 14.0; // Hollow center exposes sun gear!
-      const pinR = 36.0;
+      const outerR = 34.0;
+      const innerR = 12.0; // Hollow center exposes sun gear!
+      const pinR = 31.5;
 
       for (let i = 0; i < 3; i++) {
         const pa = (i / 3) * Math.PI * 2;
@@ -876,10 +876,10 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
     spiderR.position.set(9, 0, 0);
     carrierGroup.add(spiderR);
 
-    // 2.3.3 3 Planet Gears (z_p = 21, m=1.5, d=31.5mm, radius=15.75mm, Steel) & Precision Needle Bearings
-    // Mounted on pin circle radius 36.0 mm, surrounding the central Golden Sun Gear
+    // 2.3.3 3 Planet Gears (z_p = 18, m=1.5, d=27.0mm, radius=13.5mm, Steel) & Precision Needle Bearings
+    // Mounted on pin circle radius 31.5 mm, surrounding the central Golden Sun Gear (24T)
     const planetGroups: THREE.Group[] = [];
-    const pinRadius = 36.0;
+    const pinRadius = 31.5;
 
     const bearingBronzeMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.9, roughness: 0.2 });
 
@@ -905,26 +905,26 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
         carrierGroup.add(bearingSleeve);
       }
 
-      // Planet Gear (hardened steel, 21 teeth) mounted concentrically on pin
-      const pg = createGearMesh(15.75, 14, 21, 0xcfd8dc, 4);
+      // Planet Gear (hardened steel, 18 teeth, radius 13.5mm) mounted concentrically on pin
+      const pg = createGearMesh(13.5, 15, 18, 0xcfd8dc, 3.5);
       pg.position.set(0, py, pz);
       carrierGroup.add(pg);
       planetGroups.push(pg);
     }
     scene.add(carrierGroup);
 
-    // 2.4 Complete Ring Gear (Green) with both External 74T teeth and Internal 69T planetary teeth at PLANETARY_X = -46.0 mm
-    // Full 360-degree closed circular gear assembly
+    // 2.4 Complete Ring Gear (Green) with both External 66T teeth and Internal 60T planetary teeth at PLANETARY_X = -46.0 mm
+    // Full 360-degree closed circular gear assembly with 22mm width
     const ringGroup = new THREE.Group();
     ringGroup.position.set(PLANETARY_X, 0, AXIS1_Z);
 
-    // 1) Complete Outer teeth (74T, m=1.75, radius 64.75mm, root radius ~62.5mm) for meshing with countershaft 46T
-    const ringOuterTeeth = createGearMesh(64.75, 18, 74, 0x16a34a, 56.0, true, 0);
+    // 1) Complete Outer teeth (66T, m=1.75, radius 57.75mm, width 22.0mm) for meshing with countershaft 54T
+    const ringOuterTeeth = createGearMesh(57.75, 22, 66, 0x16a34a, 48.0, true, 0);
     ringGroup.add(ringOuterTeeth);
 
-    // 2) Internal teeth (69T, m=1.5, pitch radius 51.75mm, root radius 53.6mm, tip radius 50.25mm) for meshing with 3 planet gears
+    // 2) Internal teeth (60T, m=1.5, pitch radius 45.0mm, width 22.0mm) for meshing with 3 planet gears
     // Seamlessly welded into a single rigid ring gear drum
-    const ringInternalTeeth = createInternalRingGearMesh(51.75, 57.0, 16, 69, 0x15803d, 1.5);
+    const ringInternalTeeth = createInternalRingGearMesh(45.0, 52.0, 22, 60, 0x15803d, 1.5);
     ringGroup.add(ringInternalTeeth);
 
     scene.add(ringGroup);
@@ -972,10 +972,10 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
     cShaft.position.set(-8, 0, 0);
     countershaftGroup.add(cShaft);
 
-    // Gear 1: Driven Pinion from Ring Gear (z_c1 = 46, m=1.75, radius 40.25mm)
-    // Shifted to PLANETARY_X (-46.0 mm) to mesh with shifted Ring Gear 74T!
-    // 64.75 + 40.25 = 105.0 mm !!
-    const cGear1 = createGearMesh(40.25, 20, 46, 0x64748b, 11);
+    // Gear 1: Driven Pinion from Ring Gear (z_c1 = 54, m=1.75, radius 47.25mm, width 22.0mm)
+    // Shifted to PLANETARY_X (-46.0 mm) to mesh with shifted Ring Gear 66T!
+    // 57.75 + 47.25 = 105.0 mm !!
+    const cGear1 = createGearMesh(47.25, 22, 54, 0x64748b, 11);
     cGear1.position.set(PLANETARY_X, 0, 0);
     countershaftGroup.add(cGear1);
 
@@ -1406,8 +1406,8 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
         }
 
         // 3. 齿圈 (Axis 1, Z = 0):
-        // 齿圈 74T 外齿与副轴 46T 齿轮为外齿柱齿轮啮合，旋转方向相反 -> 正方向 (Positive)
-        const omegaRing = omegaCounter * (46 / 74);
+        // 齿圈 66T 外齿与副轴 54T 齿轮为外齿柱齿轮啮合，旋转方向相反 -> 正方向 (Positive)
+        const omegaRing = omegaCounter * (54 / 66);
         if (rotatingPartsRef.current.ringGroup) {
           rotatingPartsRef.current.ringGroup.rotation.x += omegaRing;
         }
@@ -1472,9 +1472,9 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
 
         // 7. 太阳轮与 MG1 电机 (Axis 1, Z = 0):
         // 行星排运动学基本方程 (Planetary Gear Set Kinematic Equation):
-        // rho = z_ring / z_sun = 69 / 27 = 2.556 (1 + rho = 3.556)
+        // rho = z_ring / z_sun = 60 / 24 = 2.500 (1 + rho = 3.500)
         // omega_sun = (1 + rho) * omega_carrier - rho * omega_ring
-        const omegaSun = 3.556 * omegaCarrier - 2.556 * omegaRing;
+        const omegaSun = 3.500 * omegaCarrier - 2.500 * omegaRing;
         if (rotatingPartsRef.current.sunGroup) {
           rotatingPartsRef.current.sunGroup.rotation.x += omegaSun;
         }
@@ -1484,7 +1484,7 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
 
         // 8. 行星轮自转 (围绕行星架销轴):
         for (const pg of rotatingPartsRef.current.planetGroups) {
-          pg.rotation.x -= (omegaSun - omegaCarrier) * (27 / 21);
+          pg.rotation.x -= (omegaSun - omegaCarrier) * (24 / 18);
         }
       }
 
@@ -1775,9 +1775,9 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
             {(() => {
               const liveWheelRpm = (manualVehicleSpeedKmh / 3.6 / 0.312) * 60 / (2 * Math.PI);
               const liveCounterRpm = liveWheelRpm * (48 / 12);
-              const liveRingRpm = liveCounterRpm * (46 / 74);
+              const liveRingRpm = liveCounterRpm * (54 / 66);
               const liveCarrierRpm = manualIceRpm / 1.50;
-              const liveSunRpm = (1 + 69 / 27) * liveCarrierRpm - (69 / 27) * liveRingRpm;
+              const liveSunRpm = (1 + 60 / 24) * liveCarrierRpm - (60 / 24) * liveRingRpm;
               const liveMg2Rpm = liveCounterRpm * 2.0;
 
               return (
@@ -1795,7 +1795,7 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
                     </div>
                   </div>
                   <div className="bg-slate-950/60 p-1.5 rounded border border-slate-800">
-                    <div className="text-slate-400 text-[9px]">齿圈 / 46T</div>
+                    <div className="text-slate-400 text-[9px]">齿圈 / 54T</div>
                     <div className="font-mono text-emerald-400 font-semibold mt-0.5">
                       {liveRingRpm.toFixed(0)} <span className="text-[8px] font-normal text-slate-500">rpm</span>
                     </div>

@@ -1,0 +1,8 @@
+﻿git : To https://github.com/haomuch/Hybrid-Moto.git
+At C:\Users\micha\AppData\Local\Temp\genie-ps-1790065382569-c96ds9.ps1:819 char:110
++ ... .txt -ErrorAction SilentlyContinue; git push origin main 2>&1 | Out-F ...
++                                         ~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (To https://gith...Hybrid-Moto.git:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+   d9b2a78..a0819c5  main -> main

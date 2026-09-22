@@ -26,52 +26,52 @@ export const GEAR_SPECIFICATIONS: GearParam[] = [
   {
     name: '行星排太阳轮',
     code: 'z_s',
-    teeth: 27,
+    teeth: 24,
     module: 1.5,
-    pitchDiameter: 40.5,
+    pitchDiameter: 36.0,
     width: 16.0,
     location: 'MG1 实心中心轴端部',
-    description: '直连左侧 MG1 电机，负责调控发动机转速实现无级调速并平衡力矩'
+    description: '直连左侧 MG1 电机，负责调控发动机转速实现无级调速并平衡力矩；齿数缩减至 24T (分度圆直径 d = 36.0mm, m=1.5)'
   },
   {
     name: '行星轮 (3个均布120°)',
     code: 'z_p',
-    teeth: 21,
+    teeth: 18,
     module: 1.5,
-    pitchDiameter: 31.5,
-    width: 14.0,
-    location: '行星架销轴 (分布圆直径 72.0mm)',
-    description: '由行星架支承，自转同时绕太阳轮公转，内啮合齿圈内齿，外啮合太阳轮'
+    pitchDiameter: 27.0,
+    width: 15.0,
+    location: '行星架销轴 (分布圆直径 63.0mm)',
+    description: '由行星架支承，自转同时绕太阳轮公转，内啮合齿圈内齿，外啮合太阳轮；齿数缩减至 18T (分度圆直径 d = 27.0mm, m=1.5)'
   },
   {
     name: '行星排内齿圈',
     code: 'z_ri',
-    teeth: 69,
+    teeth: 60,
     module: 1.5,
-    pitchDiameter: 103.5,
+    pitchDiameter: 90.0,
     width: 22.0,
     location: '齿圈套筒内壁',
-    description: '与 3 个行星轮内啮合。特性分流比 ρ = 69/27 = 2.556，满足均布装配整数条件 (27+69)/3=32'
+    description: '与 3 个行星轮内啮合。齿数缩减至 60T，特性分流比 ρ = 60/24 = 2.500，满足均布装配整数条件 (24+60)/3=28'
   },
   {
     name: '行星齿圈外齿输出轮',
     code: 'z_ro',
-    teeth: 74,
+    teeth: 66,
     module: 1.75,
-    pitchDiameter: 129.5,
-    width: 20.0,
+    pitchDiameter: 115.5,
+    width: 22.0,
     location: '齿圈套筒外壁',
-    description: '向平行副轴输出分流机械动力。外齿与内齿单边刚性壁厚达 8.95mm，刚度极高'
+    description: '向平行副轴输出分流机械动力。齿数缩减至 66T，齿宽增加至 22.0mm，外齿与内齿单边刚性壁厚达 8.68mm，刚度与承载力极高'
   },
   {
     name: '副轴受动小齿轮',
     code: 'z_c1',
-    teeth: 46,
+    teeth: 54,
     module: 1.75,
-    pitchDiameter: 80.5,
-    width: 20.0,
+    pitchDiameter: 94.5,
+    width: 22.0,
     location: '平行副轴左中段',
-    description: '啮合中心距 a₁ = (129.5 + 80.5) / 2 = 105.0 mm，传动比 i_r_c = 46/74 ≈ 0.6216'
+    description: '齿数相应增加至 54T，齿宽增加至 22.0mm，啮合中心距 a₁ = (115.5 + 94.5) / 2 = 105.0 mm 绝对严格对齐，传动比 i_r_c = 54/66 = 9/11 ≈ 0.8182'
   },
   {
     name: 'MG2 主动减速小齿轮',
@@ -122,7 +122,7 @@ export const TYPICAL_OPERATING_POINTS: OperatingPoint[] = [
     vehicleSpeedKmh: 35,
     iceRpm: 0,
     iceTorqueNm: 0,
-    mg1Rpm: -1891,
+    mg1Rpm: -2435,
     mg1TorqueNm: 0,
     mg2Rpm: 2381,
     mg2TorqueNm: 68,
@@ -138,7 +138,7 @@ export const TYPICAL_OPERATING_POINTS: OperatingPoint[] = [
     vehicleSpeedKmh: 100,
     iceRpm: 3400,
     iceTorqueNm: 28,
-    mg1Rpm: 2656,
+    mg1Rpm: 977,
     mg1TorqueNm: -9.8,
     mg2Rpm: 6803,
     mg2TorqueNm: 21,
@@ -146,7 +146,7 @@ export const TYPICAL_OPERATING_POINTS: OperatingPoint[] = [
     wheelRpm: 850,
     rearWheelTorqueNm: 168,
     powerSplitMode: 'SERIES_PARALLEL',
-    description: '发动机稳定在 3400 rpm 最优热效率岛 (BSFC < 235 g/kWh)，在 1.50 初级速比与 4.000 (48/12) 终传比下，百公里巡航时 MG2 转速为 6,803 rpm，处于高效电机转速区间！'
+    description: '发动机稳定在 3400 rpm 最优热效率岛 (BSFC < 235 g/kWh)，在 1.50 初级速比、2.500 行星特性比与 4.000 (48/12) 终传比下，百公里巡航时 MG2 转速为 6,803 rpm，处于高效电机转速区间！'
   },
   {
     id: 'MAX_ACCEL_FULL',
@@ -154,7 +154,7 @@ export const TYPICAL_OPERATING_POINTS: OperatingPoint[] = [
     vehicleSpeedKmh: 110,
     iceRpm: 5500,
     iceTorqueNm: 31,
-    mg1Rpm: 7094,
+    mg1Rpm: 5180,
     mg1TorqueNm: -10.9,
     mg2Rpm: 7483,
     mg2TorqueNm: 55,
@@ -170,7 +170,7 @@ export const TYPICAL_OPERATING_POINTS: OperatingPoint[] = [
     vehicleSpeedKmh: 130,
     iceRpm: 6000,
     iceTorqueNm: 29.4,
-    mg1Rpm: 7198,
+    mg1Rpm: 4956,
     mg1TorqueNm: -10.3,
     mg2Rpm: 8843,
     mg2TorqueNm: 27,
@@ -186,7 +186,7 @@ export const TYPICAL_OPERATING_POINTS: OperatingPoint[] = [
     vehicleSpeedKmh: -3,
     iceRpm: 0,
     iceTorqueNm: 0,
-    mg1Rpm: 162,
+    mg1Rpm: 209,
     mg1TorqueNm: 0,
     mg2Rpm: -204,
     mg2TorqueNm: 25,

@@ -21,9 +21,9 @@ Motorcycle Power-Split Hybrid Transmission CAD Spec Sheet
    - 发动机曲轴线 (Axis 0): Y = 0.0 mm, Z = -120.0 mm (中心距 a_ice = 120.0 mm，拉开轴距并消除中间轴重叠冲突)
      包含构件: 双缸ICE曲轴 -> 扭转减振器 -> 48T中置输出齿轮 (啮合主轴72T从动输入齿轮, i_in = 72/48 = 1.500)
    - 主轴线 (Axis 1): Y = 0.0 mm, Z = 0.0 mm
-     包含构件: MG1电机(左端) -> 穿心实心轴 -> 太阳轮(左偏 X=-44) -> 行星架/齿圈(左偏 X=-44) -> 空心套管 -> 72T中间受动齿轮(居中 X=0) -> MG2齿轮/电机(右端)
+     包含构件: MG1电机(左端) -> 穿心实心轴 -> 太阳轮(左偏 X=-46) -> 行星架/齿圈(左偏 X=-46) -> 空心套管 -> 72T中间受动齿轮(居中 X=0) -> MG2齿轮/电机(右端)
    - 副轴线 (Axis 2): Y = 0.0 mm, Z = 105.0 mm (中心距 a = 105.0 mm 绝对严格对齐)
-     包含构件: 12T链轮(左，紧凑下限 r=30.7mm) -> 46T副轴齿轮(左偏 X=-44，啮合74T齿圈) -> 70T副轴大齿轮(右偏 X=65，啮合35T)
+     包含构件: 12T链轮(左，紧凑下限 r=30.7mm) -> 54T副轴齿轮(左偏 X=-46，啮合66T齿圈) -> 70T副轴大齿轮(右偏 X=65，啮合35T)
    - 后轮轴线 (Axis 3): Y = 0.0 mm, Z = 655.0 mm (终传链驱动 12T -> 48T，摇臂链条中心距 a_chain = 550.0 mm)
 
 2. 齿轮副参数与中心距校验:
@@ -34,10 +34,10 @@ Motorcycle Power-Split Hybrid Transmission CAD Spec Sheet
      * 中心距 a_ice = (96.00 + 144.00) / 2 = 120.00 mm (初级速比 i₀ = 72/48 = 1.500)
      * 空间拓扑效果: 曲轴与行星排在空间拉开，曲轴平衡块与齿圈保持 7.5mm 径向间隙，双缸缸心距保持 84.0mm 紧凑标准！
    - 齿轮副 1 (齿圈外齿 -> 副轴受动齿轮):
-     * 模数 m = 1.75 mm, 压力角 α = 20°
-     * 齿圈外齿 z_ro = 74, 分度圆 d_ro = 129.50 mm
-     * 副轴齿轮 z_c1 = 46, 分度圆 d_c1 = 80.50 mm
-     * 中心距 a1 = (129.50 + 80.50) / 2 = 105.00 mm
+     * 模数 m = 1.75 mm, 压力角 α = 20°, 齿宽 b = 22.0 mm (加宽加厚)
+     * 齿圈外齿 z_ro = 66, 分度圆 d_ro = 115.50 mm (齿宽 22.0 mm)
+     * 副轴齿轮 z_c1 = 54, 分度圆 d_c1 = 94.50 mm (齿宽 22.0 mm)
+     * 中心距 a1 = (115.50 + 94.50) / 2 = 105.00 mm (速比 i_r_c = 54/66 = 9/11 ≈ 0.8182)
    - 齿轮副 2 (MG2主动小齿轮 -> 副轴被动大齿轮):
      * 模数 m = 2.00 mm, 压力角 α = 20°
      * MG2齿轮 z_m2 = 35, 分度圆 d_m2 = 70.00 mm (进一步加大)
@@ -46,12 +46,12 @@ Motorcycle Power-Split Hybrid Transmission CAD Spec Sheet
 
 3. 行星排机构参数:
    - 模数 m = 1.50 mm
-   - 太阳轮: z_s = 27 (d = 40.50 mm)
-   - 行星轮 (3个均布): z_p = 21 (d = 31.50 mm, 销轴分布圆直径 D = 72.00 mm)
-   - 齿圈内齿: z_ri = 69 (d = 103.50 mm)
-   - 装配整数条件: (27 + 69) / 3 = 32 (成立)
-   - 特性分流比 ρ = 69 / 27 = 2.556
-   - 齿圈单边刚性壁厚: (129.50 - 103.50) / 2 ≈ 13.0 mm (厚实无变形)
+   - 太阳轮: z_s = 24 (d = 36.00 mm)
+   - 行星轮 (3个均布): z_p = 18 (d = 27.00 mm, 销轴分布圆直径 D = 63.00 mm)
+   - 齿圈内齿: z_ri = 60 (d = 90.00 mm, 齿宽 22.0 mm)
+   - 装配整数条件: (24 + 60) / 3 = 28 (成立)
+   - 特性分流比 ρ = 60 / 24 = 2.500
+   - 齿圈单边刚性壁厚: (115.50 - 90.00) / 2 = 12.75 mm (厚实无变形)
 
 4. 动力源与发动机详细工程规格:
    - ICE: 350cc 直列双缸 180°曲轴阿特金森循环发动机 (20 kW @ 6500 rpm, 32 N·m)
@@ -90,7 +90,7 @@ Motorcycle Power-Split Hybrid Transmission CAD Spec Sheet
     axes: [
       { id: "Axis0_ICE_Crankshaft", zMm: -120.0, components: ["Crankshaft_180deg", "Cylinder_Twin_350cc", "Piston_Twin_63.5mm", "ConRod_96mm", "ICE_Pinion_48T"] },
       { id: "Axis1_Main", zMm: 0.0, components: ["MG1_Pancake", "Sun", "Carrier", "CarrierInput_72T", "Ring", "MG2_Pancake"] },
-      { id: "Axis2_Countershaft", zMm: 105.0, components: ["CounterGear_46T", "CounterGear_70T", "Sprocket_12T"] },
+      { id: "Axis2_Countershaft", zMm: 105.0, components: ["CounterGear_54T", "CounterGear_70T", "Sprocket_12T"] },
       { id: "Axis3_RearAxle", zMm: 655.0, components: ["RearSprocket_48T", "Tire_160_60_R17", "BrakeDisc_240mm"] }
     ]
   };
