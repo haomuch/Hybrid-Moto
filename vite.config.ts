@@ -5,9 +5,6 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
-    // GitHub Pages 项目站点部署在子路径 /Hybrid-Moto/ 下，
-    // 必须使用相对 base，否则 /assets/* 会解析到根域导致 404、页面白屏。
-    base: './',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

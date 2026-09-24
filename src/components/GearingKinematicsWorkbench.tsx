@@ -15,7 +15,7 @@ export const GearingKinematicsWorkbench: React.FC<GearingKinematicsWorkbenchProp
   const [customIceRpm, setCustomIceRpm] = useState(3400);
 
   // Planetary ratio
-  const rho = 54 / 18; // 3.000
+  const rho = 54 / 18; // 3.000 (Sun 18T, Ring 54T)
 
   // Compute live speeds for nomograph & calculator (100% unified with 3D animation and kinematics)
   const wheelRadius = 0.312; // 160/60 ZR17 (R = 0.312 m, outer diameter 624 mm)
@@ -23,7 +23,7 @@ export const GearingKinematicsWorkbench: React.FC<GearingKinematicsWorkbenchProp
   const countershaftRpm = Math.round(wheelRpm * (48 / 12)); // 12T -> 48T final drive ratio: 4.000
   const ringRpm = Math.round(countershaftRpm * (60 / 60));  // 60T ring -> 60T countershaft ratio: 60/60 = 1.000
   const carrierRpm = Math.round(customIceRpm / (72 / 48));  // 48T crank -> 72T carrier ratio: 1.500
-  const sunRpm = Math.round((1 + rho) * carrierRpm - rho * ringRpm); // Willis equation
+  const sunRpm = Math.round((1 + rho) * carrierRpm - rho * ringRpm); // Willis equation: 4.000*nc - 3.000*nr
   const mg2Rpm = Math.round(countershaftRpm * (70 / 35));   // 35T MG2 -> 70T countershaft ratio: 2.000
 
   const handleSelectPreset = (point: OperatingPoint) => {
@@ -239,15 +239,15 @@ export const GearingKinematicsWorkbench: React.FC<GearingKinematicsWorkbenchProp
               </text>
 
               {/* Vertical Stems for S, C, R */}
-              {/* S: Sun Gear (MG1) X=100 */}
-              <line x1="100" y1="25" x2="100" y2="215" stroke="#475569" strokeWidth="1.5" />
-              <text x="100" y="232" fill="#ef4444" fontSize="11" fontWeight="bold" textAnchor="middle">
+              {/* S: Sun Gear (MG1) X=90 */}
+              <line x1="90" y1="25" x2="90" y2="215" stroke="#475569" strokeWidth="1.5" />
+              <text x="90" y="232" fill="#ef4444" fontSize="11" fontWeight="bold" textAnchor="middle">
                 S (太阳轮/MG1)
               </text>
 
-              {/* C: Carrier (ICE) X=362.5 (Ratio SC : CR = 3.000 : 1 -> 262.5px : 87.5px) */}
-              <line x1="362.5" y1="25" x2="362.5" y2="215" stroke="#475569" strokeWidth="1.5" />
-              <text x="362.5" y="232" fill="#38bdf8" fontSize="11" fontWeight="bold" textAnchor="middle">
+              {/* C: Carrier (ICE) X=360 (Ratio SC : CR = 3.000 : 1 -> 270px : 90px) */}
+              <line x1="360" y1="25" x2="360" y2="215" stroke="#475569" strokeWidth="1.5" />
+              <text x="360" y="232" fill="#38bdf8" fontSize="11" fontWeight="bold" textAnchor="middle">
                 C (行星架/ICE)
               </text>
 
@@ -258,10 +258,10 @@ export const GearingKinematicsWorkbench: React.FC<GearingKinematicsWorkbenchProp
               </text>
 
               {/* Distance dimension indicators */}
-              <text x="231" y="16" fill="#94a3b8" fontSize="10" textAnchor="middle" fontFamily="monospace">
+              <text x="225" y="16" fill="#94a3b8" fontSize="10" textAnchor="middle" fontFamily="monospace">
                 距离比 = ρ (3.000)
               </text>
-              <text x="406" y="16" fill="#94a3b8" fontSize="10" textAnchor="middle" fontFamily="monospace">
+              <text x="405" y="16" fill="#94a3b8" fontSize="10" textAnchor="middle" fontFamily="monospace">
                 1.0
               </text>
 
@@ -275,19 +275,19 @@ export const GearingKinematicsWorkbench: React.FC<GearingKinematicsWorkbenchProp
                 return (
                   <g>
                     {/* Live Collinear Lever line */}
-                    <line x1="100" y1={yS} x2="450" y2={yR} stroke="#facc15" strokeWidth="3" />
+                    <line x1="90" y1={yS} x2="450" y2={yR} stroke="#facc15" strokeWidth="3" />
 
                     {/* Point S (Sun) */}
-                    <circle cx="100" cy={yS} r="6" fill="#ef4444" stroke="#ffffff" strokeWidth="2" />
-                    <rect x="70" y={yS - 24} width="60" height="18" rx="3" fill="#1e293b" />
-                    <text x="100" y={yS - 12} fill="#fca5a5" fontSize="10" fontWeight="bold" textAnchor="middle" fontFamily="monospace">
+                    <circle cx="90" cy={yS} r="6" fill="#ef4444" stroke="#ffffff" strokeWidth="2" />
+                    <rect x="60" y={yS - 24} width="60" height="18" rx="3" fill="#1e293b" />
+                    <text x="90" y={yS - 12} fill="#fca5a5" fontSize="10" fontWeight="bold" textAnchor="middle" fontFamily="monospace">
                       {sunRpm}
                     </text>
 
                     {/* Point C (Carrier) */}
-                    <circle cx="362.5" cy={yC} r="6" fill="#0284c7" stroke="#ffffff" strokeWidth="2" />
-                    <rect x="332.5" y={yC - 24} width="60" height="18" rx="3" fill="#1e293b" />
-                    <text x="362.5" y={yC - 12} fill="#bae6fd" fontSize="10" fontWeight="bold" textAnchor="middle" fontFamily="monospace">
+                    <circle cx="360" cy={yC} r="6" fill="#0284c7" stroke="#ffffff" strokeWidth="2" />
+                    <rect x="330" y={yC - 24} width="60" height="18" rx="3" fill="#1e293b" />
+                    <text x="360" y={yC - 12} fill="#bae6fd" fontSize="10" fontWeight="bold" textAnchor="middle" fontFamily="monospace">
                       {carrierRpm}
                     </text>
 
@@ -306,7 +306,7 @@ export const GearingKinematicsWorkbench: React.FC<GearingKinematicsWorkbenchProp
           <div className="text-[11px] text-slate-400 bg-slate-950/60 p-3 rounded-lg border border-slate-800 space-y-1">
             <span className="font-bold text-slate-200 block">共线图物理运行原理：</span>
             <div>• <b>纯电起步 (0-45 km/h)</b>：发动机熄火停机（C点锁在 0 线），后轮经终传与副轴反拖齿圈（R点）向上转，MG1（S点）被迫反向空转（负转速），实现零发动机阻力纯电滑行。</div>
-            <div>• <b>高效巡航 (100 km/h)</b>：车速固定使 R 点稳定，发动机控制在 3400 rpm 最优热效率岛（C点），MG1（S点）当前处于 -1,135 rpm 反向运转；若需 MG1 转为正向发电回充，可将发动机转速提升至约 3,830 rpm（S 点过零）。</div>
+            <div>• <b>高效巡航 (100 km/h)</b>：车速固定使 R 点稳定，发动机控制在 3400 rpm 最优热效率岛（C点），MG1（S点）处于高效调速发电工况，回充电池并驱动 MG2。</div>
           </div>
         </div>
 
@@ -347,7 +347,7 @@ export const GearingKinematicsWorkbench: React.FC<GearingKinematicsWorkbenchProp
               <div>• 副轴受动齿分度圆: d_c1 = 60 × 1.75 = 105.00 mm (齿宽 22.0mm)</div>
               <div className="text-emerald-400 font-bold pt-1 border-t border-slate-800 flex justify-between">
                 <span>中心距 a₁ = (105.00 + 105.00) / 2 = 105.00 mm</span>
-                <span>速比 i₁ = 60/60 (1.000)</span>
+                <span>速比 i₁ = 60/60 = 1.000</span>
               </div>
             </div>
           </div>

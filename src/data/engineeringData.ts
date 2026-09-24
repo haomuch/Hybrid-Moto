@@ -31,7 +31,7 @@ export const GEAR_SPECIFICATIONS: GearParam[] = [
     pitchDiameter: 27.0,
     width: 16.0,
     location: 'MG1 实心中心轴端部',
-    description: '直连左侧 MG1 电机，负责调控发动机转速实现无级调速并平衡力矩；齿数缩减至 18T (分度圆直径 d = 27.0mm, m=1.5)'
+    description: '直连左侧 MG1 电机，负责调控发动机转速实现无级调速并平衡力矩；齿数进一步缩减至 18T (分度圆直径 d = 27.0mm, m=1.5)'
   },
   {
     name: '行星轮 (3个均布120°)',
@@ -41,7 +41,7 @@ export const GEAR_SPECIFICATIONS: GearParam[] = [
     pitchDiameter: 27.0,
     width: 15.0,
     location: '行星架销轴 (分布圆直径 54.0mm)',
-    description: '由行星架支承，自转同时绕太阳轮公转，内啮合齿圈内齿，外啮合太阳轮；齿数 18T (分度圆直径 d = 27.0mm, m=1.5)，与太阳轮啮合中心距 27.0mm'
+    description: '由行星架支承，自转同时绕太阳轮公转，内啮合齿圈内齿，外啮合太阳轮；齿数定型为 18T (分度圆直径 d = 27.0mm, m=1.5)'
   },
   {
     name: '行星排内齿圈',
@@ -51,7 +51,7 @@ export const GEAR_SPECIFICATIONS: GearParam[] = [
     pitchDiameter: 81.0,
     width: 22.0,
     location: '齿圈套筒内壁',
-    description: '与 3 个行星轮内啮合。齿数缩减至 54T，特性分流比 ρ = 54/18 = 3.000，满足均布装配整数条件 (18+54)/3=24'
+    description: '与 3 个行星轮内啮合。齿数进一步缩减至 54T，特性分流比 ρ = 54/18 = 3.000，满足均布装配整数条件 (18+54)/3=24'
   },
   {
     name: '行星齿圈外齿输出轮',
@@ -61,7 +61,7 @@ export const GEAR_SPECIFICATIONS: GearParam[] = [
     pitchDiameter: 105.0,
     width: 22.0,
     location: '齿圈套筒外壁',
-    description: '向平行副轴输出分流机械动力。齿数相应缩减至 60T，齿宽增加至 22.0mm，外齿与内齿单边刚性壁厚达 12.00mm，刚度与承载力极高'
+    description: '向平行副轴输出分流机械动力。齿数缩减至 60T，齿宽为 22.0mm，外齿与内齿单边刚性壁厚达 12.0mm，刚度与承载力极高'
   },
   {
     name: '副轴受动小齿轮',
@@ -71,7 +71,7 @@ export const GEAR_SPECIFICATIONS: GearParam[] = [
     pitchDiameter: 105.0,
     width: 22.0,
     location: '平行副轴左中段',
-    description: '齿数相应增加至 60T，齿宽增加至 22.0mm，啮合中心距 a₁ = (105.0 + 105.0) / 2 = 105.0 mm 绝对严格对齐，传动比 i_r_c = 60/60 = 1.000'
+    description: '齿数相应增加至 60T，齿宽为 22.0mm，啮合中心距 a₁ = (105.0 + 105.0) / 2 = 105.0 mm 绝对严格对齐，传动比 i_r_c = 60/60 = 1.000'
   },
   {
     name: 'MG2 主动减速小齿轮',
@@ -170,7 +170,7 @@ export const TYPICAL_OPERATING_POINTS: OperatingPoint[] = [
     vehicleSpeedKmh: 130,
     iceRpm: 6000,
     iceTorqueNm: 29.4,
-    mg1Rpm: 2734,
+    mg1Rpm: 2738,
     mg1TorqueNm: -10.3,
     mg2Rpm: 8843,
     mg2TorqueNm: 27,

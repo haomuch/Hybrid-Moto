@@ -23,7 +23,7 @@ Motorcycle Power-Split Hybrid Transmission CAD Spec Sheet
    - 主轴线 (Axis 1): Y = 0.0 mm, Z = 0.0 mm
      包含构件: MG1电机(左端) -> 穿心实心轴 -> 太阳轮(左偏 X=-46) -> 行星架/齿圈(左偏 X=-46) -> 空心套管 -> 72T中间受动齿轮(居中 X=0) -> MG2齿轮/电机(右端)
    - 副轴线 (Axis 2): Y = 0.0 mm, Z = 105.0 mm (中心距 a = 105.0 mm 绝对严格对齐)
-     包含构件: 12T链轮(左，紧凑下限 r=30.7mm) -> 60T副轴齿轮(左偏 X=-46，啮合60T齿圈外齿) -> 70T副轴大齿轮(右偏 X=65，啮合35T)
+     包含构件: 12T链轮(左，紧凑下限 r=30.7mm) -> 60T副轴齿轮(左偏 X=-46，啮合60T齿圈) -> 70T副轴大齿轮(右偏 X=65，啮合35T)
    - 后轮轴线 (Axis 3): Y = 0.0 mm, Z = 655.0 mm (终传链驱动 12T -> 48T，摇臂链条中心距 a_chain = 550.0 mm)
 
 2. 齿轮副参数与中心距校验:
@@ -90,7 +90,7 @@ Motorcycle Power-Split Hybrid Transmission CAD Spec Sheet
     axes: [
       { id: "Axis0_ICE_Crankshaft", zMm: -120.0, components: ["Crankshaft_180deg", "Cylinder_Twin_350cc", "Piston_Twin_63.5mm", "ConRod_96mm", "ICE_Pinion_48T"] },
       { id: "Axis1_Main", zMm: 0.0, components: ["MG1_Pancake", "Sun", "Carrier", "CarrierInput_72T", "Ring", "MG2_Pancake"] },
-      { id: "Axis2_Countershaft", zMm: 105.0, components: ["CounterGear_60T", "CounterGear_70T", "Sprocket_12T"] },
+      { id: "Axis2_Countershaft", zMm: 105.0, components: ["CounterGear_54T", "CounterGear_70T", "Sprocket_12T"] },
       { id: "Axis3_RearAxle", zMm: 655.0, components: ["RearSprocket_48T", "Tire_160_60_R17", "BrakeDisc_240mm"] }
     ]
   };
