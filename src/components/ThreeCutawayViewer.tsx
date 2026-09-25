@@ -1,20 +1,14 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { Play, Pause, Download, RotateCcw, Eye, Layers, Sliders, Gauge, RotateCw, Cog } from 'lucide-react';
+import { Download, RotateCcw, Gauge, RotateCw, Maximize2, Minimize2 } from 'lucide-react';
 import { SYSTEM_CENTER_DISTANCE } from '../data/engineeringData';
 
 interface ThreeCutawayViewerProps {
-  currentModeSpeedMultiplier?: number;
-  highlightedComponent?: string | null;
-  onSelectComponent?: (name: string) => void;
+  // Configurable props for prospective extension
 }
 
-export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
-  currentModeSpeedMultiplier = 1.0,
-  highlightedComponent,
-  onSelectComponent
-}) => {
+export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -22,31 +16,60 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
   const controlsRef = useRef<OrbitControls | null>(null);
 
   // Animation & Viewport states
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying] = useState(true);
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
   const [cameraPreset, setCameraPreset] = useState<'isometric' | 'top' | 'planetary' | 'mesh' | 'chain'>('isometric');
-  const [showHousing, setShowHousing] = useState(false);
   const [explodeRatio, setExplodeRatio] = useState(0);
 
-  // --- 手动动力学交互控制面板状态 (Interactive Speed & RPM Control Panel) ---
-  const [controlMode, setControlMode] = useState<'preset' | 'manual'>('manual');
+  // Speed & RPM Control states
   const [manualVehicleSpeedKmh, setManualVehicleSpeedKmh] = useState(60); // 0 - 180 km/h
   const [manualIceRpm, setManualIceRpm] = useState(3000);                 // 0 - 8500 rpm
-  const [isPanelExpanded, setIsPanelExpanded] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Keep playback speed in ref to avoid recreating the Three.js scene on speed toggle
+  const playbackSpeedRef = useRef(playbackSpeed);
+  useEffect(() => {
+    playbackSpeedRef.current = playbackSpeed;
+  }, [playbackSpeed]);
+
+  // Lock body scroll and handle Escape key when in fullscreen
+  useEffect(() => {
+    if (isFullscreen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    // Trigger Three.js resize calculation immediately
+    const timer = setTimeout(() => {
+      window.dispatchEvent(new Event('resize'));
+    }, 60);
+
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleKeyDown);
+      clearTimeout(timer);
+    };
+  }, [isFullscreen]);
 
   // Ref to hold live speed / engine RPM for high-performance animation loop
   const kinRef = useRef({
-    controlMode: 'manual' as 'preset' | 'manual',
     vehicleSpeedKmh: 60,
     iceRpm: 3000
   });
 
   // Keep kinRef synced with React state
   useEffect(() => {
-    kinRef.current.controlMode = controlMode;
     kinRef.current.vehicleSpeedKmh = manualVehicleSpeedKmh;
     kinRef.current.iceRpm = manualIceRpm;
-  }, [controlMode, manualVehicleSpeedKmh, manualIceRpm]);
+  }, [manualVehicleSpeedKmh, manualIceRpm]);
 
   // Rotating parts references for kinematics
   const rotatingPartsRef = useRef<{
@@ -216,14 +239,14 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
   }, []);
 
   // Procedural internal ring gear generator with true inward-pointing involute teeth and external cylindrical shell
-  // Generates internal teeth (78T, m=1.75, pitch diameter 136.5mm) and hollow outer boundary (radius 75.0mm)
+  // Generates internal teeth (54T, m=1.5, pitch diameter 81.0mm) and hollow outer boundary (radius 47.0mm)
   const createInternalRingGearMesh = useCallback((
-    pitchRadius: number = 68.25, // d_ring / 2 = 136.5 / 2 = 68.25 mm
-    outerRimRadius: number = 75.0, // External wall radius
-    width: number = 18,
-    teeth: number = 78,
-    color: number = 0x16a34a,
-    extModule: number = 1.75
+    pitchRadius: number = 40.5, // d_ring / 2 = 81.0 / 2 = 40.5 mm
+    outerRimRadius: number = 47.0, // External wall radius
+    width: number = 22,
+    teeth: number = 54,
+    color: number = 0x15803d,
+    extModule: number = 1.5
   ) => {
     const group = new THREE.Group();
     const material = new THREE.MeshStandardMaterial({
@@ -1784,6 +1807,52 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
 
     scene.add(mg2BearingGroup);
 
+    // ---------------- 525 Roller Drive Chain Geometrical Parameters ----------------
+    // Exact closed-loop solution for 100 links (50 outer + 50 inner) around 12T & 48T sprockets
+    // Center distance C = REAR_Z - AXIS2_Z = 655.0 - 105.0 = 550.0 mm
+    const chainC = REAR_Z - AXIS2_Z; // 550.0 mm
+    const NUM_LINKS = 100;
+    let pIter = 15.93;
+    for (let iter = 0; iter < 5; iter++) {
+      const dR = (36 * pIter) / (2 * Math.PI);
+      const sA = dR / chainC;
+      const a = Math.asin(sA);
+      pIter = (2 * chainC * Math.cos(a)) / (100 - (30 + (36 * a) / Math.PI));
+    }
+    const linkPitch = pIter; // ~15.931 mm
+    const chainR1 = (12 * linkPitch) / (2 * Math.PI); // ~30.426 mm (Front 12T pitch radius)
+    const chainR2 = (48 * linkPitch) / (2 * Math.PI); // ~121.703 mm (Rear 48T pitch radius)
+    const chainDeltaR = chainR2 - chainR1;
+    const chainSinAlpha = chainDeltaR / chainC;
+    const chainAlpha = Math.asin(chainSinAlpha);
+    const chainCosAlpha = Math.cos(chainAlpha);
+
+    const chainL1 = chainC * chainCosAlpha; // Top straight run: 542.39 mm
+    const chainL2 = chainR2 * (Math.PI + 2 * chainAlpha); // Rear wrap: 422.75 mm
+    const chainL3 = chainL1; // Bottom straight run: 542.39 mm
+    const chainL4 = chainR1 * (Math.PI - 2 * chainAlpha); // Front wrap: 85.57 mm
+    const chainLTotal = chainL1 + chainL2 + chainL3 + chainL4; // exactly 100 * linkPitch = 1593.10 mm!
+
+    // ---------------- Sprocket-to-Chain Conjugate Meshing Phase Alignment ----------------
+    // Mathematically shifts sprocket angular phase so rollers sit precisely centered in tooth pockets
+    // 1. Rear 48T Sprocket phase offset (centered at pin k=35 on rear wrap)
+    const dTheta48 = (2 * Math.PI) / 48;
+    const uRear = 35 * linkPitch - chainL1;
+    const thetaRear = -chainAlpha + uRear / chainR2;
+    const alphaRearNeeded = thetaRear + Math.PI / 2;
+    let rearSprocketPhaseOffset = (alphaRearNeeded - 0.5 * dTheta48) % dTheta48;
+    if (rearSprocketPhaseOffset < -dTheta48 / 2) rearSprocketPhaseOffset += dTheta48;
+    if (rearSprocketPhaseOffset > dTheta48 / 2) rearSprocketPhaseOffset -= dTheta48;
+
+    // 2. Front 12T Sprocket phase offset (centered at pin k=97 on front wrap)
+    const dTheta12 = (2 * Math.PI) / 12;
+    const uFront = 97 * linkPitch - (chainL1 + chainL2 + chainL3);
+    const thetaFront = (Math.PI + chainAlpha) + uFront / chainR1;
+    const alphaFrontNeeded = thetaFront + Math.PI / 2;
+    let frontSprocketPhaseOffset = (alphaFrontNeeded - 0.5 * dTheta12) % dTheta12;
+    if (frontSprocketPhaseOffset < -dTheta12 / 2) frontSprocketPhaseOffset += dTheta12;
+    if (frontSprocketPhaseOffset > dTheta12 / 2) frontSprocketPhaseOffset -= dTheta12;
+
     // ---------------- 3. Parallel Countershaft (Axis 2, Z = 105.0 mm) ----------------
     const countershaftGroup = new THREE.Group();
     countershaftGroup.position.set(0, 0, AXIS2_Z);
@@ -1809,9 +1878,10 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
     cGear2.position.set(MG2_GEAR_X, 0, 0);
     countershaftGroup.add(cGear2);
 
-    // Drive Sprocket 12T at X = -92.0 mm (Pitch radius 30.7 mm for 525 chain, d = 61.3 mm)
-    const driveSprocket = createGearMesh(30.7, 8, 12, 0xea580c, 10);
+    // Drive Sprocket 12T at X = -92.0 mm (Pitch radius chainR1 for 525 chain)
+    const driveSprocket = createGearMesh(chainR1, 8, 12, 0xea580c, 10);
     driveSprocket.position.set(-92, 0, 0);
+    driveSprocket.rotation.x = frontSprocketPhaseOffset; // 精准居中对齐链条滚子槽，消除超前相位差
     countershaftGroup.add(driveSprocket);
 
     // Rotating Bearing Inner Races mounted on countershaft journals:
@@ -2326,10 +2396,11 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
       rearWheelGroup.add(drillHole);
     }
 
-    // 4.7 Left Side: True-Scale Rear Sprocket 48T at X = -92.0 mm (Pitch Radius r = 121.4 mm, d = 242.7 mm)
+    // 4.7 Left Side: True-Scale Rear Sprocket 48T at X = -92.0 mm (Pitch Radius chainR2 = 121.70 mm)
     // Final Drive Ratio: i_chain = 48 / 12 = 4.000 (12T小链轮与48T大链盘，4.000大减速比带来充沛轮端扭矩)
-    const rearSprocket = createGearMesh(121.4, 8, 48, 0xea580c, 36);
+    const rearSprocket = createGearMesh(chainR2, 8, 48, 0xea580c, 36);
     rearSprocket.position.set(-92, 0, 0);
+    rearSprocket.rotation.x = rearSprocketPhaseOffset; // 精准居中对齐链条滚子槽，消除滞后相位差
     rearWheelGroup.add(rearSprocket);
 
     // Sprocket mounting bolts (6 heavy-duty titanium sprocket studs on bolt circle R = 78.0 mm)
@@ -2337,85 +2408,70 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
       const bAng = (b / 6) * Math.PI * 2;
       const bolt = new THREE.Mesh(new THREE.CylinderGeometry(4.0, 4.0, 14, 12), steelMat);
       bolt.rotateZ(Math.PI / 2);
-      bolt.position.set(-92, Math.sin(bAng) * 78, Math.cos(bAng) * 78);
-      rearWheelGroup.add(bolt);
+      bolt.position.set(0, Math.sin(bAng) * 78, Math.cos(bAng) * 78);
+      rearSprocket.add(bolt);
     }
 
     scene.add(rearWheelGroup);
 
     // ---------------- 4.8 Physicalized Motorsport 525 Roller Drive Chain (实体化跟随链轮联动滚子链) ----------------
     // Continuous 525-specification roller chain loop with 100 links (50 outer links + 50 inner links)
-    // Sprockets: Front 12T (r1 = 30.7mm at AXIS2_Z = 105.0mm) & Rear 48T (r2 = 121.4mm at REAR_Z = 655.0mm)
+    // Sprockets: Front 12T (AXIS2_Z = 105.0mm) & Rear 48T (REAR_Z = 655.0mm)
     // Lateral position: Aligned at X = -92.0 mm
-    // Center distance C = 550.0mm, deltaR = 90.7mm
-    const chainC = REAR_Z - AXIS2_Z; // 550.0 mm
-    const chainR1 = 30.7; // Front 12T pitch radius
-    const chainR2 = 121.4; // Rear 48T pitch radius
-    const chainDeltaR = chainR2 - chainR1; // 90.7 mm
-    const chainSinAlpha = chainDeltaR / chainC; // 0.16490909
-    const chainAlpha = Math.asin(chainSinAlpha); // ~0.165683 rad
-    const chainCosAlpha = Math.cos(chainAlpha); // ~0.9863088
+    const defaultChainPoint = { y: 0, z: 0, Ty: 0, Tz: 0 };
 
-    const chainL1 = chainC * chainCosAlpha; // Top straight run: 542.47 mm
-    const chainL2 = chainR2 * (Math.PI + 2 * chainAlpha); // Rear wrap: 421.62 mm
-    const chainL3 = chainL1; // Bottom straight run: 542.47 mm
-    const chainL4 = chainR1 * (Math.PI - 2 * chainAlpha); // Front wrap: 86.27 mm
-    const chainLTotal = chainL1 + chainL2 + chainL3 + chainL4; // 1592.83 mm
+    // Pre-calculate trajectory segment constants for zero runtime trigonometric overhead
+    const sec1YStart = chainR1 * chainCosAlpha;
+    const sec1ZStart = AXIS2_Z - chainR1 * chainSinAlpha;
+    const sec1DY = chainR2 * chainCosAlpha - sec1YStart;
+    const sec1DZ = (REAR_Z - chainR2 * chainSinAlpha) - sec1ZStart;
 
-    const NUM_LINKS = 100; // Standard 525 motorcycle chain links
-    const linkPitch = chainLTotal / NUM_LINKS; // ~15.928 mm (matches 5/8" standard pitch)
+    const sec3YStart = -chainR2 * chainCosAlpha;
+    const sec3ZStart = REAR_Z - chainR2 * chainSinAlpha;
+    const sec3DY = -chainR1 * chainCosAlpha - sec3YStart;
+    const sec3DZ = (AXIS2_Z - chainR1 * chainSinAlpha) - sec3ZStart;
 
-    const getChainPointAndTangent = (s: number) => {
+    const invChainR1 = 1 / chainR1;
+    const invChainR2 = 1 / chainR2;
+    const chainL1L2 = chainL1 + chainL2;
+    const chainL1L2L3 = chainL1L2 + chainL3;
+
+    const getChainPointAndTangent = (s: number, target = defaultChainPoint) => {
       let normS = s % chainLTotal;
       if (normS < 0) normS += chainLTotal;
 
       if (normS < chainL1) {
         // Section 1: Top straight run (Forward to Rear, +Z direction)
         const t = normS / chainL1;
-        const yStart = chainR1 * chainCosAlpha;
-        const zStart = AXIS2_Z - chainR1 * chainSinAlpha;
-        const yEnd = chainR2 * chainCosAlpha;
-        const zEnd = REAR_Z - chainR2 * chainSinAlpha;
-        return {
-          y: yStart + t * (yEnd - yStart),
-          z: zStart + t * (zEnd - zStart),
-          Ty: chainSinAlpha,
-          Tz: chainCosAlpha
-        };
-      } else if (normS < chainL1 + chainL2) {
+        target.y = sec1YStart + t * sec1DY;
+        target.z = sec1ZStart + t * sec1DZ;
+        target.Ty = chainSinAlpha;
+        target.Tz = chainCosAlpha;
+      } else if (normS < chainL1L2) {
         // Section 2: Rear sprocket wrap (around rear 48T sprocket, +Z apex)
         const u = normS - chainL1;
-        const theta = -chainAlpha + (u / chainR2);
-        return {
-          y: chainR2 * Math.cos(theta),
-          z: REAR_Z + chainR2 * Math.sin(theta),
-          Ty: -Math.sin(theta),
-          Tz: Math.cos(theta)
-        };
-      } else if (normS < chainL1 + chainL2 + chainL3) {
+        const theta = -chainAlpha + u * invChainR2;
+        target.y = chainR2 * Math.cos(theta);
+        target.z = REAR_Z + chainR2 * Math.sin(theta);
+        target.Ty = -Math.sin(theta);
+        target.Tz = Math.cos(theta);
+      } else if (normS < chainL1L2L3) {
         // Section 3: Bottom straight run (Rear to Front, -Z direction)
-        const t = (normS - (chainL1 + chainL2)) / chainL3;
-        const yStart = -chainR2 * chainCosAlpha;
-        const zStart = REAR_Z - chainR2 * chainSinAlpha;
-        const yEnd = -chainR1 * chainCosAlpha;
-        const zEnd = AXIS2_Z - chainR1 * chainSinAlpha;
-        return {
-          y: yStart + t * (yEnd - yStart),
-          z: zStart + t * (zEnd - zStart),
-          Ty: chainSinAlpha,
-          Tz: -chainCosAlpha
-        };
+        const t = (normS - chainL1L2) / chainL3;
+        target.y = sec3YStart + t * sec3DY;
+        target.z = sec3ZStart + t * sec3DZ;
+        target.Ty = chainSinAlpha;
+        target.Tz = -chainCosAlpha;
       } else {
         // Section 4: Front sprocket wrap (around front 12T sprocket, -Z apex)
-        const u = normS - (chainL1 + chainL2 + chainL3);
-        const theta = (Math.PI + chainAlpha) + (u / chainR1);
-        return {
-          y: chainR1 * Math.cos(theta),
-          z: AXIS2_Z + chainR1 * Math.sin(theta),
-          Ty: -Math.sin(theta),
-          Tz: Math.cos(theta)
-        };
+        const u = normS - chainL1L2L3;
+        const theta = (Math.PI + chainAlpha) + u * invChainR1;
+        target.y = chainR1 * Math.cos(theta);
+        target.z = AXIS2_Z + chainR1 * Math.sin(theta);
+        target.Ty = -Math.sin(theta);
+        target.Tz = Math.cos(theta);
       }
+      return target;
     };
 
     // Chain Link Plate Profile Geometry (Classic dog-bone waist shape with two pin holes)
@@ -2519,6 +2575,12 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
       chain: chainAssembly
     };
 
+    // Pre-allocated reusable matrix and coordinates to eliminate runtime GC allocations
+    const pinData = { y: 0, z: 0, Ty: 0, Tz: 0 };
+    const midData = { y: 0, z: 0, Ty: 0, Tz: 0 };
+    const chainDummyMat = new THREE.Matrix4();
+    let hasDrawnChainOnce = false;
+
     // Animation Loop
     let animId: number;
     let clock = new THREE.Clock();
@@ -2552,8 +2614,8 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
         // 统一物理转速至 3D 视觉角速度缩放系数 (显示转速按实际物理转速 1/100 慢速拟真缩减)
         // 物理角速度 omega_real = RPM * (2*pi/60) rad/s
         // 3D 呈现角速度 omega_visual = omega_real / 100 = RPM * (2*pi / 6000) rad/s
-        // 每帧转角 delta_theta = omega_visual * delta * playbackSpeed
-        const visualScale = ((2 * Math.PI) / 6000) * playbackSpeed * delta;
+        // 每帧转角 delta_theta = omega_visual * delta * playbackSpeedRef.current
+        const visualScale = ((2 * Math.PI) / 6000) * playbackSpeedRef.current * delta;
 
         // 1. 平行副轴 (Axis 2, Z = 105.0):
         // 链传动驱动后轮向前滚动，负向旋转 (Negative)
@@ -2568,7 +2630,7 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
         }
 
         // 3. 齿圈 (Axis 1, Z = 0):
-        // 齿圈 66T 外齿与副轴 54T 齿轮为外齿啮合，反向 -> 正方向 (Positive)
+        // 齿圈 60T 外齿与副轴 60T 齿轮为外齿啮合，反向 -> 正方向 (Positive)
         if (rotatingPartsRef.current.ringGroup) {
           rotatingPartsRef.current.ringGroup.rotation.x += ringRpm * visualScale;
         }
@@ -2670,70 +2732,76 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
         }
 
         // 9. 525 滚子驱动链条空间实体化联动 (Synchronized 525 Roller Chain Motion)
-        // 线速度与 48T 后链盘及 12T 主动小链轮齿顶圆周速度严密同步
-        const chainLinearSpeed = wheelRpm * visualScale * 121.4;
-        chainDistance = (chainDistance - chainLinearSpeed) % chainLTotal;
-        if (chainDistance < 0) chainDistance += chainLTotal;
-
-        const chainDummyMat = new THREE.Matrix4();
-        for (let k = 0; k < 100; k++) {
-          const sPin = (k * linkPitch + chainDistance) % chainLTotal;
-          const pinData = getChainPointAndTangent(sPin);
-
-          // 1. 放置销轴与精密滚子 (Pin & Roller)
-          chainDummyMat.set(
-            1, 0, 0, -92.0,
-            0, pinData.Tz, pinData.Ty, pinData.y,
-            0, -pinData.Ty, pinData.Tz, pinData.z,
-            0, 0, 0, 1
-          );
-          pinsMesh.setMatrixAt(k, chainDummyMat);
-          rollersMesh.setMatrixAt(k, chainDummyMat);
-
-          // 2. 放置内/外链节板 (Link Plates at midpoint)
-          const sMid = (sPin + linkPitch / 2) % chainLTotal;
-          const midData = getChainPointAndTangent(sMid);
-
-          if (k % 2 === 0) {
-            // 外链节：竞技金色外链板 (X = -92.0 ± 6.8 mm)
-            chainDummyMat.set(
-              1, 0, 0, -92.0 - 6.8,
-              0, midData.Tz, midData.Ty, midData.y,
-              0, -midData.Ty, midData.Tz, midData.z,
-              0, 0, 0, 1
-            );
-            outerPlatesMesh.setMatrixAt(k, chainDummyMat);
-
-            chainDummyMat.set(
-              1, 0, 0, -92.0 + 6.8,
-              0, midData.Tz, midData.Ty, midData.y,
-              0, -midData.Ty, midData.Tz, midData.z,
-              0, 0, 0, 1
-            );
-            outerPlatesMesh.setMatrixAt(k + 1, chainDummyMat);
-          } else {
-            // 内链节：淬火深色内链板 (X = -92.0 ± 4.2 mm)
-            chainDummyMat.set(
-              1, 0, 0, -92.0 - 4.2,
-              0, midData.Tz, midData.Ty, midData.y,
-              0, -midData.Ty, midData.Tz, midData.z,
-              0, 0, 0, 1
-            );
-            innerPlatesMesh.setMatrixAt(k - 1, chainDummyMat);
-
-            chainDummyMat.set(
-              1, 0, 0, -92.0 + 4.2,
-              0, midData.Tz, midData.Ty, midData.y,
-              0, -midData.Ty, midData.Tz, midData.z,
-              0, 0, 0, 1
-            );
-            innerPlatesMesh.setMatrixAt(k, chainDummyMat);
-          }
+        // 线速度与 48T 后链盘及 12T 主动小链轮节圆线速度严密同步 (零转速差、零相位漂移)
+        const chainLinearSpeed = wheelRpm * visualScale * chainR2;
+        const chainMoved = Math.abs(chainLinearSpeed) > 1e-6;
+        if (chainMoved) {
+          chainDistance = (chainDistance - chainLinearSpeed) % chainLTotal;
+          if (chainDistance < 0) chainDistance += chainLTotal;
         }
-        pinsMesh.instanceMatrix.needsUpdate = true;
-        rollersMesh.instanceMatrix.needsUpdate = true;
-        outerPlatesMesh.instanceMatrix.needsUpdate = true;
-        innerPlatesMesh.instanceMatrix.needsUpdate = true;
+
+        // 仅在链条运动或首次渲染初始化时更新实例矩阵，静止工况零开销
+        if (chainMoved || !hasDrawnChainOnce) {
+          hasDrawnChainOnce = true;
+          for (let k = 0; k < 100; k++) {
+            const sPin = (k * linkPitch + chainDistance) % chainLTotal;
+            getChainPointAndTangent(sPin, pinData);
+
+            // 1. 放置销轴与精密滚子 (Pin & Roller)
+            chainDummyMat.set(
+              1, 0, 0, -92.0,
+              0, pinData.Tz, pinData.Ty, pinData.y,
+              0, -pinData.Ty, pinData.Tz, pinData.z,
+              0, 0, 0, 1
+            );
+            pinsMesh.setMatrixAt(k, chainDummyMat);
+            rollersMesh.setMatrixAt(k, chainDummyMat);
+
+            // 2. 放置内/外链节板 (Link Plates at midpoint)
+            const sMid = (sPin + linkPitch / 2) % chainLTotal;
+            getChainPointAndTangent(sMid, midData);
+
+            if (k % 2 === 0) {
+              // 外链节：竞技金色外链板 (X = -92.0 ± 6.8 mm)
+              chainDummyMat.set(
+                1, 0, 0, -92.0 - 6.8,
+                0, midData.Tz, midData.Ty, midData.y,
+                0, -midData.Ty, midData.Tz, midData.z,
+                0, 0, 0, 1
+              );
+              outerPlatesMesh.setMatrixAt(k, chainDummyMat);
+
+              chainDummyMat.set(
+                1, 0, 0, -92.0 + 6.8,
+                0, midData.Tz, midData.Ty, midData.y,
+                0, -midData.Ty, midData.Tz, midData.z,
+                0, 0, 0, 1
+              );
+              outerPlatesMesh.setMatrixAt(k + 1, chainDummyMat);
+            } else {
+              // 内链节：淬火深色内链板 (X = -92.0 ± 4.2 mm)
+              chainDummyMat.set(
+                1, 0, 0, -92.0 - 4.2,
+                0, midData.Tz, midData.Ty, midData.y,
+                0, -midData.Ty, midData.Tz, midData.z,
+                0, 0, 0, 1
+              );
+              innerPlatesMesh.setMatrixAt(k - 1, chainDummyMat);
+
+              chainDummyMat.set(
+                1, 0, 0, -92.0 + 4.2,
+                0, midData.Tz, midData.Ty, midData.y,
+                0, -midData.Ty, midData.Tz, midData.z,
+                0, 0, 0, 1
+              );
+              innerPlatesMesh.setMatrixAt(k, chainDummyMat);
+            }
+          }
+          pinsMesh.instanceMatrix.needsUpdate = true;
+          rollersMesh.instanceMatrix.needsUpdate = true;
+          outerPlatesMesh.instanceMatrix.needsUpdate = true;
+          innerPlatesMesh.instanceMatrix.needsUpdate = true;
+        }
       }
 
       controls.update();
@@ -2764,7 +2832,7 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
       }
       rendererRef.current?.dispose();
     };
-  }, [createGearMesh, createInternalRingGearMesh, currentModeSpeedMultiplier, isPlaying, playbackSpeed]);
+  }, [createGearMesh, createInternalRingGearMesh]);
 
   // Handle Explode ratio update (clean single-tier positioning without double-offset)
   useEffect(() => {
@@ -2853,359 +2921,180 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
     link.click();
   };
 
+  // Real-time kinematic speeds calculation
+  const liveWheelRpm = (manualVehicleSpeedKmh / 3.6 / 0.312) * 60 / (2 * Math.PI);
+  const liveCounterRpm = liveWheelRpm * (48 / 12);
+  const liveRingRpm = liveCounterRpm * (60 / 60);
+  const liveCarrierRpm = manualIceRpm / (72 / 48);
+  const liveSunRpm = (1 + 54 / 18) * liveCarrierRpm - (54 / 18) * liveRingRpm;
+  const liveMg2Rpm = liveCounterRpm * 2.0;
+
   return (
-    <div className="relative w-full h-[620px] sm:h-[700px] bg-slate-950 select-none overflow-hidden rounded-xl border border-slate-800 shadow-2xl">
-      {/* 3D WebGL Canvas Container with Explicit Height */}
+    <div className="space-y-3">
+      {/* 3D WebGL Canvas Container */}
       <div
-        ref={containerRef}
-        className="w-full h-full cursor-grab active:cursor-grabbing outline-none"
-      />
+        className={`relative w-full bg-slate-950 select-none overflow-hidden transition-all duration-300 shadow-2xl border border-slate-800 ${
+          isFullscreen
+            ? 'fixed inset-0 z-50 w-full h-[100dvh] max-w-none m-0 rounded-none border-0'
+            : 'h-[42vh] min-h-[340px] max-h-[500px] sm:h-[480px] lg:h-[560px] rounded-2xl'
+        }`}
+      >
+        {/* 3D Canvas */}
+        <div
+          ref={containerRef}
+          className="w-full h-full cursor-grab active:cursor-grabbing outline-none"
+        />
 
-      {/* Top Right Actions (Screenshot / Download button) */}
-      <div className="absolute top-3 right-3 z-20 pointer-events-auto">
-        <button
-          id="btn-export-png"
-          onClick={handleExportPNG}
-          className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-lg transition-all hover:shadow-emerald-600/30"
-          title="直接从当前 3D 视角无损导出高清晰度 PNG 渲染截图"
-        >
-          <Download className="w-3.5 h-3.5" />
-          <span>导出 3D PNG 截图</span>
-        </button>
-      </div>
-
-      {/* Interactive Speed & Engine RPM Dynamic Control Panel (动力学交互调节面板 - 移动至左上角位置) */}
-      <div className="absolute top-3 left-3 bg-slate-900/90 backdrop-blur-md rounded-xl border border-slate-700/70 shadow-2xl overflow-hidden w-80 sm:w-96 text-xs text-slate-200 transition-all z-20">
-        <div className="flex items-center justify-between px-3 py-2 bg-slate-800/80 border-b border-slate-700/60">
-          <div className="flex items-center gap-1.5 font-semibold text-sky-400">
-            <Sliders className="w-3.5 h-3.5" />
-            <span>动力学交互调节面板</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => setControlMode(controlMode === 'preset' ? 'manual' : 'preset')}
-              className={`px-2 py-0.5 rounded text-[10px] font-medium transition ${
-                controlMode === 'manual'
-                  ? 'bg-amber-600 text-white font-bold shadow'
-                  : 'bg-slate-700 text-slate-300 hover:text-white'
-              }`}
-            >
-              {controlMode === 'manual' ? '手动控制中' : '切换手动'}
-            </button>
-            <button
-              onClick={() => setIsPanelExpanded(!isPanelExpanded)}
-              className="text-slate-400 hover:text-white text-xs px-1"
-              title={isPanelExpanded ? '折叠面板' : '展开面板'}
-            >
-              {isPanelExpanded ? '▲' : '▼'}
-            </button>
-          </div>
-        </div>
-
-        {isPanelExpanded && (
-          <div className="p-3 space-y-3 max-h-[calc(100vh-220px)] overflow-y-auto">
-            {/* Control mode description banner */}
-            <div className={`p-2 rounded-lg text-[11px] leading-relaxed border ${
-              controlMode === 'manual'
-                ? 'bg-amber-950/40 border-amber-800/50 text-amber-200'
-                : 'bg-slate-800/50 border-slate-700/50 text-slate-400'
-            }`}>
-              {controlMode === 'manual' ? (
-                <span>⚡ <b>已激活手动实时联动模式</b>：调节车速与发动机转速，通过 48T/72T 中置输入副 (a_ice=120mm)、行星排与 12T/48T 终传滚子链 (速比 4.000) 即时驱动 1:1 真实比例 160/60 ZR17 轮系运转！</span>
-              ) : (
-                <span>ℹ️ 当前跟随工况预设。点击右上角<b>“切换手动”</b>可自主调节车速与发动机转速。</span>
-              )}
-            </div>
-
-            {/* Vehicle Speed Slider */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1 text-slate-300 font-medium">
-                  <Gauge className="w-3.5 h-3.5 text-sky-400" />
-                  <span>摩托车车速 (Vehicle Speed):</span>
-                </span>
-                <span className="font-mono text-sky-400 font-bold text-sm">
-                  {manualVehicleSpeedKmh} <span className="text-[10px] font-normal text-slate-400">km/h</span>
-                </span>
-              </div>
-              <input
-                id="slider-vehicle-speed"
-                type="range"
-                min="0"
-                max="180"
-                step="5"
-                value={manualVehicleSpeedKmh}
-                onChange={(e) => {
-                  setManualVehicleSpeedKmh(parseFloat(e.target.value));
-                  if (controlMode !== 'manual') setControlMode('manual');
-                }}
-                className="w-full accent-sky-500 cursor-pointer h-1.5 bg-slate-700 rounded-lg"
-              />
-              <div className="flex justify-between text-[10px] text-slate-500">
-                <span>0 km/h (静止)</span>
-                <span>60 (巡航)</span>
-                <span>120 (高速)</span>
-                <span>180 km/h</span>
-              </div>
-            </div>
-
-            {/* Engine RPM Slider */}
-            <div className="space-y-1.5 pt-1 border-t border-slate-800">
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1 text-slate-300 font-medium">
-                  <RotateCw className="w-3.5 h-3.5 text-amber-400" />
-                  <span>发动机转速 (Engine ICE RPM):</span>
-                </span>
-                <span className="font-mono text-amber-400 font-bold text-sm">
-                  {manualIceRpm} <span className="text-[10px] font-normal text-slate-400">RPM</span>
-                </span>
-              </div>
-              <input
-                id="slider-engine-rpm"
-                type="range"
-                min="0"
-                max="8500"
-                step="100"
-                value={manualIceRpm}
-                onChange={(e) => {
-                  setManualIceRpm(parseFloat(e.target.value));
-                  if (controlMode !== 'manual') setControlMode('manual');
-                }}
-                className="w-full accent-amber-500 cursor-pointer h-1.5 bg-slate-700 rounded-lg"
-              />
-              <div className="flex justify-between text-[10px] text-slate-500">
-                <span>0 (熄火纯电)</span>
-                <span>1500 (怠速)</span>
-                <span>4000 (高效)</span>
-                <span>8500 (红线)</span>
-              </div>
-            </div>
-
-            {/* Fixed Gear Specification Tags */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between px-2.5 py-1.5 rounded bg-slate-950/80 border border-slate-800 text-[10px]">
-                <span className="text-slate-400 flex items-center gap-1">
-                  <Cog className="w-3 h-3 text-sky-400" />
-                  <span>曲轴中置输入副:</span>
-                </span>
-                <span className="font-mono text-sky-300 font-semibold">
-                  48T / 72T (速比 1.500, a_ice=120.0mm)
-                </span>
-              </div>
-              <div className="flex items-center justify-between px-2.5 py-1.5 rounded bg-slate-950/80 border border-slate-800 text-[10px]">
-                <span className="text-slate-400 flex items-center gap-1">
-                  <Cog className="w-3 h-3 text-amber-400" />
-                  <span>MG2 减速传动副:</span>
-                </span>
-                <span className="font-mono text-amber-300 font-semibold">
-                  35T / 70T (速比 2.000, a₂=105.0mm)
-                </span>
-              </div>
-              <div className="flex items-center justify-between px-2.5 py-1.5 rounded bg-slate-950/80 border border-slate-800 text-[10px]">
-                <span className="text-slate-400 flex items-center gap-1">
-                  <Cog className="w-3 h-3 text-emerald-400" />
-                  <span>终传链条减速比:</span>
-                </span>
-                <span className="font-mono text-emerald-300 font-semibold">
-                  12T / 48T (速比 4.000, r₁=30.7mm, r₂=121.4mm)
-                </span>
-              </div>
-            </div>
-
-            {/* Live Kinematic Outputs Summary */}
-            {(() => {
-              const liveWheelRpm = (manualVehicleSpeedKmh / 3.6 / 0.312) * 60 / (2 * Math.PI);
-              const liveCounterRpm = liveWheelRpm * (48 / 12);
-              const liveRingRpm = liveCounterRpm * (60 / 60);
-              const liveCarrierRpm = manualIceRpm / (72 / 48);
-              const liveSunRpm = (1 + 54 / 18) * liveCarrierRpm - (54 / 18) * liveRingRpm;
-              const liveMg2Rpm = liveCounterRpm * 2.0;
-
-              return (
-                <div className="pt-2 border-t border-slate-800 space-y-2">
-                  <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium">
-                    <span>各轴系瞬时转速与转向 (Live Kinematics):</span>
-                    <span className="font-mono text-emerald-400 text-[9px]">3D渲染方向100%同步</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-1.5 text-[11px]">
-                    <div className="bg-slate-950/70 p-1.5 rounded border border-slate-800">
-                      <div className="text-slate-400 text-[9px]">后轮 (48T)</div>
-                      <div className="font-mono text-slate-200 font-semibold mt-0.5">
-                        {liveWheelRpm.toFixed(0)} <span className="text-[8px] font-normal text-slate-500">rpm</span>
-                      </div>
-                    </div>
-                    <div className="bg-slate-950/70 p-1.5 rounded border border-slate-800">
-                      <div className="text-slate-400 text-[9px]">副轴 (12T/i=4.0)</div>
-                      <div className="font-mono text-cyan-400 font-semibold mt-0.5">
-                        {liveCounterRpm.toFixed(0)} <span className="text-[8px] font-normal text-slate-500">rpm</span>
-                      </div>
-                    </div>
-                    <div className="bg-slate-950/70 p-1.5 rounded border border-slate-800">
-                      <div className="text-slate-400 text-[9px]">齿圈 (60T/内54T)</div>
-                      <div className="font-mono text-emerald-400 font-semibold mt-0.5">
-                        {liveRingRpm.toFixed(0)} <span className="text-[8px] font-normal text-slate-500">rpm</span>
-                      </div>
-                    </div>
-                    <div className="bg-slate-950/70 p-1.5 rounded border border-slate-800">
-                      <div className="text-slate-400 text-[9px]">行星架 (i=1.50)</div>
-                      <div className="font-mono text-sky-400 font-semibold mt-0.5">
-                        {liveCarrierRpm.toFixed(0)} <span className="text-[8px] font-normal text-slate-500">rpm</span>
-                      </div>
-                    </div>
-                    <div className="bg-slate-950/70 p-1.5 rounded border border-slate-800">
-                      <div className="text-slate-400 text-[9px] flex items-center justify-between">
-                        <span>太阳轮 / MG1</span>
-                        <span className={`text-[8px] px-1 py-0.2 rounded font-mono ${liveSunRpm < -1 ? 'bg-rose-950 text-rose-300' : liveSunRpm > 1 ? 'bg-emerald-950 text-emerald-300' : 'bg-slate-800 text-slate-400'}`}>
-                          {liveSunRpm < -1 ? '反转' : liveSunRpm > 1 ? '正转' : '停转'}
-                        </span>
-                      </div>
-                      <div className={`font-mono font-bold mt-0.5 ${liveSunRpm < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                        {liveSunRpm.toFixed(0)} <span className="text-[8px] font-normal text-slate-500">rpm</span>
-                      </div>
-                    </div>
-                    <div className="bg-slate-950/70 p-1.5 rounded border border-slate-800">
-                      <div className="text-slate-400 text-[9px]">MG2 (i=2.00)</div>
-                      <div className="font-mono text-yellow-400 font-semibold mt-0.5">
-                        {liveMg2Rpm.toFixed(0)} <span className="text-[8px] font-normal text-slate-500">rpm</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-
-            {/* Quick preset buttons */}
-            <div className="space-y-1 pt-1">
-              <span className="text-[10px] text-slate-400 block font-medium">快速典型工况切换:</span>
-              <div className="grid grid-cols-3 gap-1">
-                <button
-                  onClick={() => {
-                    setControlMode('manual');
-                    setManualVehicleSpeedKmh(35);
-                    setManualIceRpm(0);
-                  }}
-                  className="px-1.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[10px] transition text-center"
-                >
-                  纯电起步 (35/0)
-                </button>
-                <button
-                  onClick={() => {
-                    setControlMode('manual');
-                    setManualVehicleSpeedKmh(0);
-                    setManualIceRpm(1500);
-                  }}
-                  className="px-1.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[10px] transition text-center"
-                >
-                  怠速发电 (0/1500)
-                </button>
-                <button
-                  onClick={() => {
-                    setControlMode('manual');
-                    setManualVehicleSpeedKmh(100);
-                    setManualIceRpm(3400);
-                  }}
-                  className="px-1.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[10px] transition text-center"
-                >
-                  经济巡航 (100/3400)
-                </button>
-                <button
-                  onClick={() => {
-                    setControlMode('manual');
-                    setManualVehicleSpeedKmh(110);
-                    setManualIceRpm(5500);
-                  }}
-                  className="px-1.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[10px] transition text-center"
-                >
-                  全力加速 (110/5500)
-                </button>
-                <button
-                  onClick={() => {
-                    setControlMode('manual');
-                    setManualVehicleSpeedKmh(130);
-                    setManualIceRpm(6000);
-                  }}
-                  className="px-1.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[10px] transition text-center"
-                >
-                  高速冲刺 (130/6000)
-                </button>
-                <button
-                  onClick={() => {
-                    setControlMode('manual');
-                    setManualVehicleSpeedKmh(160);
-                    setManualIceRpm(7000);
-                  }}
-                  className="px-1.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[10px] transition text-center"
-                >
-                  极速工况 (160/7000)
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Bottom Floating Animation Controls */}
-      <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center justify-between bg-slate-900/90 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-slate-700/60 shadow-xl gap-3">
-        {/* Play / Pause & Speed */}
-        <div className="flex items-center gap-2">
+        {/* Minimal Floating Top-Right: Quick Actions */}
+        <div className="absolute top-2.5 right-2.5 z-20 flex items-center gap-1.5">
           <button
-            id="btn-play-pause"
-            onClick={() => setIsPlaying(!isPlaying)}
-            className="p-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white transition-all shadow"
-            title={isPlaying ? '暂停转动' : '开始动力学转动'}
+            id="btn-export-png"
+            onClick={handleExportPNG}
+            className="p-1.5 sm:p-2 rounded-lg bg-slate-900/85 hover:bg-slate-800 text-white border border-slate-700/60 shadow-lg backdrop-blur-md transition active:scale-95"
+            title="导出 3D PNG 截图"
           >
-            {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+            <Download className="w-4 h-4 text-sky-400" />
           </button>
-          <div className="flex items-center gap-1.5 text-xs text-slate-300">
-            <span className="text-slate-400">显示比例:</span>
-            <span className="font-mono text-emerald-400 font-bold bg-emerald-950/70 border border-emerald-800/60 px-1.5 py-0.5 rounded text-[10px]">
-              1/100 实际转速
-            </span>
-            <div className="flex items-center gap-1 ml-1">
-              <button
-                onClick={() => setPlaybackSpeed(0.25)}
-                className={`px-1.5 py-0.5 rounded text-[10px] ${
-                  playbackSpeed === 0.25 ? 'bg-sky-700 text-white font-bold' : 'text-slate-400 hover:text-white'
-                }`}
-                title="超慢速 0.25x"
-              >
-                0.25x
-              </button>
-              <button
-                onClick={() => setPlaybackSpeed(0.5)}
-                className={`px-1.5 py-0.5 rounded text-[10px] ${
-                  playbackSpeed === 0.5 ? 'bg-sky-700 text-white font-bold' : 'text-slate-400 hover:text-white'
-                }`}
-                title="慢速 0.5x"
-              >
-                0.5x
-              </button>
-              <button
-                onClick={() => setPlaybackSpeed(1.0)}
-                className={`px-1.5 py-0.5 rounded text-[10px] ${
-                  playbackSpeed === 1.0 ? 'bg-sky-700 text-white font-bold' : 'text-slate-400 hover:text-white'
-                }`}
-                title="标准 1.0x (1/100 实际转速)"
-              >
-                1.0x
-              </button>
-              <button
-                onClick={() => setPlaybackSpeed(2.0)}
-                className={`px-1.5 py-0.5 rounded text-[10px] ${
-                  playbackSpeed === 2.0 ? 'bg-sky-700 text-white font-bold' : 'text-slate-400 hover:text-white'
-                }`}
-                title="加速 2.0x"
-              >
-                2.0x
-              </button>
+          <button
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="p-1.5 sm:p-2 rounded-lg bg-slate-900/85 hover:bg-slate-800 text-white border border-slate-700/60 shadow-lg backdrop-blur-md transition active:scale-95"
+            title={isFullscreen ? '退出全屏' : '全屏透视'}
+          >
+            {isFullscreen ? <Minimize2 className="w-4 h-4 text-slate-300" /> : <Maximize2 className="w-4 h-4 text-slate-300" />}
+          </button>
+        </div>
+
+        {/* Floating gesture hint */}
+        <div className="absolute bottom-2.5 right-3 z-10 pointer-events-none text-[10px] text-slate-400/80 bg-slate-950/70 px-2 py-0.5 rounded backdrop-blur-sm hidden sm:block">
+          单指拖拽 360° 旋转 · 双指缩放
+        </div>
+      </div>
+
+      {/* Streamlined Mobile-Friendly Control Console (Docked Underneath Canvas) */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 sm:p-4 space-y-3.5 shadow-xl">
+        {/* Fluid Touch Sliders (Speed & RPM) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* Vehicle Speed Slider */}
+          <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-xs text-slate-300 font-medium">
+                <Gauge className="w-3.5 h-3.5 text-sky-400" />
+                <span>摩托车行驶车速</span>
+              </span>
+              <span className="font-mono text-sky-400 font-bold text-sm bg-sky-950/60 px-2 py-0.5 rounded border border-sky-800/60">
+                {manualVehicleSpeedKmh} <span className="text-[10px] font-normal text-slate-400">km/h</span>
+              </span>
+            </div>
+            <input
+              id="slider-vehicle-speed"
+              type="range"
+              min="0"
+              max="180"
+              step="1"
+              value={manualVehicleSpeedKmh}
+              onChange={(e) => setManualVehicleSpeedKmh(parseFloat(e.target.value))}
+              className="w-full accent-sky-500 cursor-pointer h-2 bg-slate-700 rounded-lg touch-manipulation"
+            />
+            <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+              <span>0 静止</span>
+              <span>60 巡航</span>
+              <span>120 高速</span>
+              <span>180 km/h</span>
+            </div>
+          </div>
+
+          {/* Engine RPM Slider */}
+          <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-xs text-slate-300 font-medium">
+                <RotateCw className="w-3.5 h-3.5 text-amber-400" />
+                <span>发动机转速 (ICE)</span>
+              </span>
+              <span className="font-mono text-amber-400 font-bold text-sm bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/60">
+                {manualIceRpm} <span className="text-[10px] font-normal text-slate-400">RPM</span>
+              </span>
+            </div>
+            <input
+              id="slider-engine-rpm"
+              type="range"
+              min="0"
+              max="8500"
+              step="100"
+              value={manualIceRpm}
+              onChange={(e) => setManualIceRpm(parseFloat(e.target.value))}
+              className="w-full accent-amber-500 cursor-pointer h-2 bg-slate-700 rounded-lg touch-manipulation"
+            />
+            <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+              <span>0 纯电</span>
+              <span>1500 怠速</span>
+              <span>4000 高效</span>
+              <span>8500 红线</span>
             </div>
           </div>
         </div>
 
-        {/* Explode Slider */}
-        <div className="flex items-center gap-3 text-xs text-slate-300">
-          <div className="flex items-center gap-1.5">
-            <span className="text-slate-400">爆炸分解:</span>
+        {/* Section 3: Live Kinematic Status (Compact 6-grid) */}
+        <div>
+          <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1.5 font-medium">
+            <span>各轴系瞬时转速 (Live Kinematics):</span>
+            <span className="text-[10px] text-emerald-400 font-mono">3D转速方向完全同步</span>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 text-center">
+            <div className="bg-slate-950/80 p-2 rounded-lg border border-slate-800">
+              <div className="text-slate-400 text-[10px]">后轮 (48T)</div>
+              <div className="font-mono text-slate-200 font-bold text-xs mt-0.5">
+                {liveWheelRpm.toFixed(0)} <span className="text-[8px] font-normal text-slate-500">rpm</span>
+              </div>
+            </div>
+            <div className="bg-slate-950/80 p-2 rounded-lg border border-slate-800">
+              <div className="text-slate-400 text-[10px]">副轴 (12T/i=4.0)</div>
+              <div className="font-mono text-cyan-400 font-bold text-xs mt-0.5">
+                {liveCounterRpm.toFixed(0)} <span className="text-[8px] font-normal text-slate-500">rpm</span>
+              </div>
+            </div>
+            <div className="bg-slate-950/80 p-2 rounded-lg border border-slate-800">
+              <div className="text-slate-400 text-[10px]">行星架 (i=1.50)</div>
+              <div className="font-mono text-sky-400 font-bold text-xs mt-0.5">
+                {liveCarrierRpm.toFixed(0)} <span className="text-[8px] font-normal text-slate-500">rpm</span>
+              </div>
+            </div>
+            <div className="bg-slate-950/80 p-2 rounded-lg border border-slate-800">
+              <div className="text-slate-400 text-[10px] flex items-center justify-center gap-0.5">
+                <span>太阳轮/MG1</span>
+              </div>
+              <div className={`font-mono font-bold text-xs mt-0.5 ${liveSunRpm < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                {liveSunRpm.toFixed(0)} <span className="text-[8px] font-normal text-slate-500">rpm</span>
+              </div>
+              <div className="text-[8px] font-mono mt-0.5">
+                {liveSunRpm < -1 ? (
+                  <span className="text-rose-400">反转·纯电</span>
+                ) : liveSunRpm > 1 ? (
+                  <span className="text-emerald-400">正转·发电</span>
+                ) : (
+                  <span className="text-slate-400">停转</span>
+                )}
+              </div>
+            </div>
+            <div className="bg-slate-950/80 p-2 rounded-lg border border-slate-800">
+              <div className="text-slate-400 text-[10px]">MG2 (i=2.00)</div>
+              <div className="font-mono text-yellow-400 font-bold text-xs mt-0.5">
+                {liveMg2Rpm.toFixed(0)} <span className="text-[8px] font-normal text-slate-500">rpm</span>
+              </div>
+            </div>
+            <div className="bg-slate-950/80 p-2 rounded-lg border border-slate-800">
+              <div className="text-slate-400 text-[10px]">齿圈 (60T)</div>
+              <div className="font-mono text-emerald-400 font-bold text-xs mt-0.5">
+                {liveRingRpm.toFixed(0)} <span className="text-[8px] font-normal text-slate-500">rpm</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 4: Auxiliary Controls (Explode & Speed & Reset) */}
+        <div className="flex flex-wrap items-center justify-between pt-2 border-t border-slate-800/80 gap-3 text-xs text-slate-300">
+          {/* Explode View Slider */}
+          <div className="flex items-center gap-2">
+            <span className="text-slate-400 text-xs">爆炸分解:</span>
             <input
               type="range"
               min="0"
@@ -3213,15 +3102,49 @@ export const ThreeCutawayViewer: React.FC<ThreeCutawayViewerProps> = ({
               step="0.05"
               value={explodeRatio}
               onChange={(e) => setExplodeRatio(parseFloat(e.target.value))}
-              className="w-24 accent-sky-500 cursor-pointer h-1.5 bg-slate-700 rounded-lg"
+              className="w-24 sm:w-32 accent-sky-500 cursor-pointer h-1.5 bg-slate-700 rounded-lg touch-manipulation"
             />
-            <span className="font-mono text-[10px] w-8">{Math.round(explodeRatio * 100)}%</span>
+            <span className="font-mono text-xs text-sky-400 w-9">{Math.round(explodeRatio * 100)}%</span>
           </div>
-        </div>
 
-        {/* Guidance tip */}
-        <div className="hidden lg:flex items-center text-[11px] text-slate-400">
-          <span>💡 鼠标左键按住拖拽可 360° 自由旋转视角，滚轮缩放</span>
+          {/* Speed Selection */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-slate-400 text-xs">动效:</span>
+            <div className="flex items-center bg-slate-950 rounded-lg p-0.5 border border-slate-800">
+              <button
+                onClick={() => setPlaybackSpeed(1.0)}
+                className={`px-2 py-0.5 rounded text-[11px] font-mono ${
+                  playbackSpeed === 1.0 ? 'bg-sky-600 text-white font-bold' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                1.0x
+              </button>
+              <button
+                onClick={() => setPlaybackSpeed(10)}
+                className={`px-2 py-0.5 rounded text-[11px] font-mono ${
+                  playbackSpeed === 10 ? 'bg-sky-600 text-white font-bold' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                10x
+              </button>
+              <button
+                onClick={() => setPlaybackSpeed(100)}
+                className={`px-2 py-0.5 rounded text-[11px] font-mono ${
+                  playbackSpeed === 100 ? 'bg-sky-600 text-white font-bold' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                100x
+              </button>
+            </div>
+            <button
+              onClick={() => setCameraView('isometric')}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[11px] transition ml-1"
+              title="重置到全景视角"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>复位</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

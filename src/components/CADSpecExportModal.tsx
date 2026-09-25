@@ -23,7 +23,7 @@ Motorcycle Power-Split Hybrid Transmission CAD Spec Sheet
    - 主轴线 (Axis 1): Y = 0.0 mm, Z = 0.0 mm
      包含构件: MG1电机(左端) -> 穿心实心轴 -> 太阳轮(左偏 X=-46) -> 行星架/齿圈(左偏 X=-46) -> 空心套管 -> 72T中间受动齿轮(居中 X=0) -> MG2齿轮/电机(右端)
    - 副轴线 (Axis 2): Y = 0.0 mm, Z = 105.0 mm (中心距 a = 105.0 mm 绝对严格对齐)
-     包含构件: 12T链轮(左，紧凑下限 r=30.7mm) -> 60T副轴齿轮(左偏 X=-46，啮合60T齿圈) -> 70T副轴大齿轮(右偏 X=65，啮合35T)
+     包含构件: 12T链轮(左，紧凑下限 r=30.7mm) -> 60T副轴齿轮(左偏 X=-46，啮合60T齿圈) -> 70T副轴大齿轮(右偏 X=42，啮合35T)
    - 后轮轴线 (Axis 3): Y = 0.0 mm, Z = 655.0 mm (终传链驱动 12T -> 48T，摇臂链条中心距 a_chain = 550.0 mm)
 
 2. 齿轮副参数与中心距校验:
@@ -32,7 +32,7 @@ Motorcycle Power-Split Hybrid Transmission CAD Spec Sheet
      * 曲轴输出大齿轮 z_ice = 48, 分度圆 d_ice = 96.00 mm (合理加大，顶部处于气缸底面下方，无气缸干涉)
      * 行星架输入齿轮 z_c_in = 72, 分度圆 d_c_in = 144.00 mm (缩小齿径，距中间轴保持 31.0mm 宽裕间隙，消除重叠冲突)
      * 中心距 a_ice = (96.00 + 144.00) / 2 = 120.00 mm (初级速比 i₀ = 72/48 = 1.500)
-     * 空间拓扑效果: 曲轴与行星排在空间拉开，曲轴平衡块与齿圈保持 7.5mm 径向间隙，双缸缸心距保持 84.0mm 紧凑标准！
+     * 空间拓扑效果: 曲轴与行星排在空间拉开，曲轴平衡块与齿圈保持宽裕径向间隙，双缸缸心距保持 108.0mm 紧凑标准！
    - 齿轮副 1 (齿圈外齿 -> 副轴受动齿轮):
      * 模数 m = 1.75 mm, 压力角 α = 20°, 齿宽 b = 22.0 mm (加宽加厚)
      * 齿圈外齿 z_ro = 60, 分度圆 d_ro = 105.00 mm (齿宽 22.0 mm)
@@ -54,14 +54,14 @@ Motorcycle Power-Split Hybrid Transmission CAD Spec Sheet
    - 齿圈单边刚性壁厚: (105.00 - 81.00) / 2 = 12.00 mm (厚实无变形)
 
 4. 动力源与发动机详细工程规格:
-   - ICE: 350cc 直列双缸 180°曲轴阿特金森循环发动机 (20 kW @ 6500 rpm, 32 N·m)
-     * 缸径 × 行程: Φ63.50 mm × 55.00 mm (精确排量 348.4 cc)
-     * 连杆大/小头中心距: 96.00 mm (黄金连杆比 L/S = 1.745，超低侧向倾角推力)
-     * 双缸缸心距: 84.00 mm (紧凑型高刚度缸体，左缸 X=-42mm, 右缸 X=+42mm)
-     * 空间防干涉裕度: 曲轴与主轴中心距 120mm，曲轴回转最大包络半径 46mm，与齿圈外径保持 7.5mm 纯物理间隙(零干涉)；72T输入轮距中间轴留 31mm 空间
-     * 曲轴主轴颈: Φ30.00 mm，曲柄销: Φ28.00 mm，锻造刃口平衡块厚度: 10.00 mm
-     * 连杆构造: 整体锻造工字梁连杆，内置 Φ28mm/Φ16mm 穿心轴瓦孔与双侧减重加强槽
-     * 活塞规格: Φ63.00 mm 锻造铝活塞，压缩高 40.0 mm，集成 3 道气环/油环
+   - ICE: 500cc 直列双缸 180°曲轴阿特金森循环发动机 (35 kW @ 6500 rpm, 45 N·m)
+     * 缸径 × 行程: Φ69.00 mm × 66.80 mm (精确排量 499.6 cc)
+     * 连杆大/小头中心距: 120.00 mm (黄金连杆比 L/S = 1.796，超低侧向倾角推力)
+     * 双缸缸心距: 108.00 mm (紧凑型高刚度缸体，左缸 X=-54.0mm, 右缸 X=+54.0mm)
+     * 空间防干涉裕度: 曲轴与主轴中心距 120mm，曲轴回转最大包络半径 48.4mm，与齿圈外径保持纯物理间隙(零干涉)；72T输入轮距中间轴留 31mm 空间
+     * 曲轴主轴颈: Φ32.00 mm，曲柄销: Φ30.00 mm，锻造刃口平衡块厚度: 11.00 mm，内嵌高密度烧结钨合金平衡块
+     * 连杆构造: 整体锻造工字梁连杆，内置穿心轴瓦孔与双侧减重加强槽
+     * 活塞规格: Φ66.40 mm 锻造铝活塞，压缩高 44.0 mm，集成 3 道气环/油环
    - MG1: 10 kW (峰值 15 kW), 扁平饼式设计, Φ130 × L48 mm
    - MG2: 16 kW (峰值 32 kW), 扁平大扭矩设计, Φ136 × L52 mm
    - 终传链比: 12T -> 48T (i_chain = 4.000, 525 滚子链, 摇臂中心距 a_chain = 550.0 mm)
@@ -74,23 +74,23 @@ Motorcycle Power-Split Hybrid Transmission CAD Spec Sheet
     crankshaftCenterDistanceMm: 120.0,
     engine: {
       type: "Parallel_Twin_180deg_Atkinson",
-      displacementCc: 348.4,
-      boreMm: 63.5,
-      strokeMm: 55.0,
-      conRodLengthMm: 96.0,
-      rodToStrokeRatio: 1.745,
-      borePitchMm: 84.0,
-      mainJournalDiameterMm: 30.0,
-      crankpinDiameterMm: 28.0,
-      crankwebThicknessMm: 10.0,
-      pistonDiameterMm: 63.0,
-      wristPinDiameterMm: 16.0
+      displacementCc: 499.6,
+      boreMm: 69.0,
+      strokeMm: 66.8,
+      conRodLengthMm: 120.0,
+      rodToStrokeRatio: 1.796,
+      borePitchMm: 108.0,
+      mainJournalDiameterMm: 32.0,
+      crankpinDiameterMm: 30.0,
+      crankwebThicknessMm: 11.0,
+      pistonDiameterMm: 66.4,
+      wristPinDiameterMm: 17.0
     },
     gears: GEAR_SPECIFICATIONS,
     axes: [
-      { id: "Axis0_ICE_Crankshaft", zMm: -120.0, components: ["Crankshaft_180deg", "Cylinder_Twin_350cc", "Piston_Twin_63.5mm", "ConRod_96mm", "ICE_Pinion_48T"] },
-      { id: "Axis1_Main", zMm: 0.0, components: ["MG1_Pancake", "Sun", "Carrier", "CarrierInput_72T", "Ring", "MG2_Pancake"] },
-      { id: "Axis2_Countershaft", zMm: 105.0, components: ["CounterGear_54T", "CounterGear_70T", "Sprocket_12T"] },
+      { id: "Axis0_ICE_Crankshaft", zMm: -120.0, components: ["Crankshaft_180deg", "Cylinder_Twin_500cc", "Piston_Twin_66.4mm", "ConRod_120mm", "ICE_Pinion_48T"] },
+      { id: "Axis1_Main", zMm: 0.0, components: ["MG1_Pancake", "Sun_18T", "Carrier_3Arm", "CarrierInput_72T", "Ring_54T_60T", "MG2_Pancake"] },
+      { id: "Axis2_Countershaft", zMm: 105.0, components: ["CounterGear_60T", "CounterGear_70T", "Sprocket_12T"] },
       { id: "Axis3_RearAxle", zMm: 655.0, components: ["RearSprocket_48T", "Tire_160_60_R17", "BrakeDisc_240mm"] }
     ]
   };
